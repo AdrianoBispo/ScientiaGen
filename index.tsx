@@ -171,6 +171,18 @@ const solveButton = document.getElementById('solveButton') as HTMLButtonElement;
 const saveSolutionBtn = document.getElementById('saveSolutionBtn') as HTMLButtonElement;
 const solutionContainer = document.getElementById('solutionContainer') as HTMLDivElement;
 const solutionMessage = document.getElementById('solutionMessage') as HTMLDivElement;
+const guidedFileInput = document.getElementById('guidedFileInput') as HTMLInputElement;
+const guidedFileBtn = document.getElementById('guidedFileBtn') as HTMLButtonElement;
+const guidedCameraBtn = document.getElementById('guidedCameraBtn') as HTMLButtonElement;
+const filePreviewArea = document.getElementById('filePreviewArea') as HTMLDivElement;
+const fileNamePreview = document.getElementById('fileNamePreview') as HTMLSpanElement;
+const removeFileBtn = document.getElementById('removeFileBtn') as HTMLButtonElement;
+const cameraPreviewArea = document.getElementById('cameraPreviewArea') as HTMLDivElement;
+const cameraVideo = document.getElementById('cameraVideo') as HTMLVideoElement;
+const cameraCanvas = document.getElementById('cameraCanvas') as HTMLCanvasElement;
+const captureBtn = document.getElementById('captureBtn') as HTMLButtonElement;
+const closeCameraBtn = document.getElementById('closeCameraBtn') as HTMLButtonElement;
+
 
 // Match Game View Elements
 const matchSetup = document.getElementById('matchSetup') as HTMLDivElement;
@@ -451,6 +463,8 @@ let currentCardSetInViewer: SavedFlashcardSet | null = null;
 let lastExerciseConfig: { count: number, duration: number, topic: string } | null = null;
 let currentCardViewerIndex = 0;
 let currentQuizRecords: AnswerRecord[] = [];
+let attachedFile: { mimeType: string, data: string, name: string } | null = null;
+let cameraStream: MediaStream | null = null;
 
 // Paused State
 let pausedLearnState: { questions: QuizQuestion[], topic: string, index: number, score: number, time: number, timings: number[], records: AnswerRecord[], initialDuration: number } | null = null;
@@ -700,6 +714,23 @@ function applyTheme(theme: 'light' | 'dark') {
     updateThemeToggleUI(theme);
 }
 
+/**
+ * Converts a File to a base64 string (stripping the data: prefix).
+ */
+function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const result = reader.result as string;
+            // Strip the "data:image/png;base64," prefix
+            const base64 = result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = error => reject(error);
+    });
+}
+
 
 // --- Auth Functions ---
 
@@ -907,7 +938,7 @@ function renderSolutions() {
      solutionsTabContent.innerHTML = userSolutions.length > 0
         ? userSolutions.map(sol => `
             <div class="folder-item" data-id="${sol.id}" data-type="solution">
-                 <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px"><path d="M0 0h24v24H0z" fill="none"/><path d="M14.17 5L19 9.83V19H5V5h9.17M14 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V9l-6-6zM8 14h8v2H8v-2zm0-3h8v2H8v-2zm0-3h5v2H8V8z"/></svg>
+                 <svg class="folder-icon" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 0 24 24" width="24px"><path d="M14.17 5L19 9.83V19H5V5h9.17M14 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V9l-6-6zM8 14h8v2H8v-2zm0-3h8v2H8v-2zm0-3h5v2H8V8z"/></svg>
                 <div class="folder-info">
                     <span class="name">${sol.title}</span>
                     <span class="count">${new Date(sol.date).toLocaleDateString('pt-BR')}</span>
@@ -1507,6 +1538,9 @@ headerBackBtn.addEventListener('click', () => {
     } else if (hasGeneratedContent || isOnResultsScreen) {
         exitUnsavedModal.classList.remove('hidden');
     } else {
+        // Clear file attachment state on back
+        attachedFile = null;
+        filePreviewArea.classList.add('hidden');
         showMainView('home');
     }
 });
@@ -1647,19 +1681,99 @@ saveFlashcardsBtn.addEventListener('click', () => {
 });
 
 
-// Guided Learning Logic
+// Guided Learning Logic - File Attachment & Camera
+
+guidedFileBtn.addEventListener('click', () => guidedFileInput.click());
+
+guidedFileInput.addEventListener('change', async () => {
+    if (guidedFileInput.files && guidedFileInput.files[0]) {
+        const file = guidedFileInput.files[0];
+        try {
+            const base64 = await fileToBase64(file);
+            attachedFile = {
+                mimeType: file.type,
+                data: base64,
+                name: file.name
+            };
+            fileNamePreview.textContent = file.name;
+            filePreviewArea.classList.remove('hidden');
+        } catch (e) {
+            alert("Erro ao ler arquivo.");
+        }
+    }
+});
+
+removeFileBtn.addEventListener('click', () => {
+    attachedFile = null;
+    filePreviewArea.classList.add('hidden');
+    guidedFileInput.value = '';
+});
+
+// Camera Logic
+guidedCameraBtn.addEventListener('click', async () => {
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        cameraVideo.srcObject = cameraStream;
+        cameraPreviewArea.classList.remove('hidden');
+    } catch (e) {
+        alert("Não foi possível acessar a câmera. Verifique as permissões.");
+    }
+});
+
+closeCameraBtn.addEventListener('click', () => {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    cameraPreviewArea.classList.add('hidden');
+});
+
+captureBtn.addEventListener('click', () => {
+    if (!cameraStream) return;
+    
+    cameraCanvas.width = cameraVideo.videoWidth;
+    cameraCanvas.height = cameraVideo.videoHeight;
+    const context = cameraCanvas.getContext('2d');
+    if (context) {
+        context.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+        const dataUrl = cameraCanvas.toDataURL('image/jpeg');
+        // Strip prefix for Gemini
+        const base64 = dataUrl.split(',')[1];
+        
+        attachedFile = {
+            mimeType: 'image/jpeg',
+            data: base64,
+            name: 'Foto_Capturada.jpg'
+        };
+        
+        fileNamePreview.textContent = 'Foto_Capturada.jpg';
+        filePreviewArea.classList.remove('hidden');
+        
+        // Close camera view
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+        cameraPreviewArea.classList.add('hidden');
+    }
+});
+
+// Guided Learning Logic - Solve
 solveButton.addEventListener('click', async () => {
     const problem = problemInput.value.trim();
-    if (!problem) {
-        solutionMessage.textContent = 'Por favor, insira um problema para resolver.';
+    
+    if (!problem && !attachedFile) {
+        solutionMessage.textContent = 'Por favor, insira um problema ou anexe um arquivo/imagem.';
         return;
     }
-    solutionMessage.textContent = 'Encontrando a solução...';
+    
+    solutionMessage.textContent = 'Analisando e encontrando a solução...';
     solveButton.disabled = true;
     saveSolutionBtn.classList.add('hidden');
 
     try {
-        const prompt = `Aja como um tutor especialista. Forneça uma solução passo a passo detalhada para o seguinte problema. Gere uma resposta JSON que corresponda ao esquema fornecido. O problema é:\n\n${problem}`;
+        const promptText = problem 
+            ? `Aja como um tutor especialista. Forneça uma solução passo a passo detalhada para o seguinte problema. Gere uma resposta JSON que corresponda ao esquema fornecido. O problema é:\n\n${problem}`
+            : `Aja como um tutor especialista. Analise a imagem ou documento fornecido e forneça uma solução passo a passo detalhada para o problema identificado. Gere uma resposta JSON que corresponda ao esquema fornecido.`;
+
         const solutionSchema = {
             type: Type.OBJECT,
             properties: {
@@ -1680,8 +1794,21 @@ solveButton.addEventListener('click', async () => {
             },
             required: ['title', 'steps', 'finalAnswer'],
         };
+
+        const parts: any[] = [{ text: promptText }];
+        
+        if (attachedFile) {
+            parts.push({
+                inlineData: {
+                    mimeType: attachedFile.mimeType,
+                    data: attachedFile.data
+                }
+            });
+        }
+
         const result = await ai.models.generateContent({
-            model: 'gemini-2.5-flash', contents: prompt,
+            model: 'gemini-2.5-flash', 
+            contents: { parts: parts },
             config: { responseMimeType: 'application/json', responseSchema: solutionSchema },
         });
 
@@ -1695,7 +1822,7 @@ solveButton.addEventListener('click', async () => {
             currentSolutionData = solutionData;
             saveHistoryItem({
                 mode: 'Aprendizagem Guiada',
-                topic: solutionData.title,
+                topic: solutionData.title || 'Problema Resolvido',
                 score: 'Solução gerada'
             });
 
@@ -2853,6 +2980,8 @@ exitAndDiscardBtn.addEventListener('click', () => {
             solutionContainer.classList.remove('visible');
             problemInput.value = '';
             saveSolutionBtn.classList.add('hidden');
+            attachedFile = null;
+            filePreviewArea.classList.add('hidden');
             break;
     }
     
@@ -3053,6 +3182,113 @@ actionDeleteExercise.addEventListener('click', () => {
     confirmDeleteModal.classList.remove('hidden');
 });
 
+function createEditableExerciseItem(item: any, mode: string, index: number): HTMLElement {
+    const div = document.createElement('div');
+    div.className = 'editable-item';
+    div.dataset.index = index.toString();
+    
+    let innerHTML = '<button type="button" class="delete-item-btn" style="float:right">&times;</button><div class="editable-item-inputs">';
+
+    if (mode === 'Aprender') {
+        innerHTML += `
+            <label>Pergunta</label>
+            <textarea class="edit-question">${item.question || ''}</textarea>
+            <label>Resposta</label>
+            <textarea class="edit-answer">${item.answer || ''}</textarea>
+        `;
+    } else if (mode === 'Combinar') {
+        innerHTML += `
+            <label>Termo</label>
+            <input type="text" class="edit-term" value="${item.term || ''}">
+            <label>Definição</label>
+            <textarea class="edit-definition">${item.definition || ''}</textarea>
+        `;
+    } else if (mode === 'Misto') {
+        const type = item.type || 'OPEN_ENDED';
+        const options = item.options ? item.options.join(', ') : '';
+        innerHTML += `
+            <label>Tipo</label>
+            <select class="edit-type-select">
+                <option value="OPEN_ENDED" ${type === 'OPEN_ENDED' ? 'selected' : ''}>Aberta</option>
+                <option value="MULTIPLE_CHOICE" ${type === 'MULTIPLE_CHOICE' ? 'selected' : ''}>Múltipla Escolha</option>
+                <option value="FILL_IN_BLANK" ${type === 'FILL_IN_BLANK' ? 'selected' : ''}>Preencher Lacuna</option>
+            </select>
+            <label>Pergunta</label>
+            <textarea class="edit-question">${item.question || ''}</textarea>
+            <div class="edit-options-container ${type !== 'MULTIPLE_CHOICE' ? 'hidden' : ''}">
+                <label>Opções (separadas por vírgula)</label>
+                <input type="text" class="edit-options" value="${options}">
+            </div>
+            <label>Resposta</label>
+            <textarea class="edit-answer">${item.answer || ''}</textarea>
+        `;
+    }
+    innerHTML += '</div>';
+    div.innerHTML = innerHTML;
+
+    div.querySelector('.delete-item-btn')?.addEventListener('click', () => div.remove());
+    
+    if (mode === 'Misto') {
+        const select = div.querySelector('.edit-type-select') as HTMLSelectElement;
+        const optionsContainer = div.querySelector('.edit-options-container') as HTMLElement;
+        if (select && optionsContainer) {
+            select.addEventListener('change', () => {
+                optionsContainer.classList.toggle('hidden', select.value !== 'MULTIPLE_CHOICE');
+            });
+        }
+    }
+
+    return div;
+}
+
+addNewExerciseItemBtn.addEventListener('click', () => {
+    const mode = editExerciseContent.dataset.mode;
+    if (!mode) return;
+    const newItem = mode === 'Combinar' ? { term: '', definition: '' } : { question: '', answer: '' };
+    editExerciseContent.appendChild(createEditableExerciseItem(newItem, mode, -1));
+});
+
+closeEditExerciseModalBtn.addEventListener('click', () => editExerciseModal.classList.add('hidden'));
+
+editExerciseForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!activeItemId) return;
+    const exercise = userExercises.find(ex => ex.id === activeItemId);
+    if (!exercise) return;
+
+    exercise.name = editExerciseNameInput.value;
+    const newItems: any[] = [];
+    
+    editExerciseContent.querySelectorAll('.editable-item').forEach(el => {
+        if (exercise.mode === 'Aprender') {
+            const q = (el.querySelector('.edit-question') as HTMLTextAreaElement).value;
+            const a = (el.querySelector('.edit-answer') as HTMLTextAreaElement).value;
+            if (q && a) newItems.push({ question: q, answer: a });
+        } else if (exercise.mode === 'Combinar') {
+            const t = (el.querySelector('.edit-term') as HTMLInputElement).value;
+            const d = (el.querySelector('.edit-definition') as HTMLTextAreaElement).value;
+            if (t && d) newItems.push({ term: t, definition: d });
+        } else if (exercise.mode === 'Misto') {
+            const type = (el.querySelector('.edit-type-select') as HTMLSelectElement).value;
+            const q = (el.querySelector('.edit-question') as HTMLTextAreaElement).value;
+            const a = (el.querySelector('.edit-answer') as HTMLTextAreaElement).value;
+            const opts = (el.querySelector('.edit-options') as HTMLInputElement)?.value;
+            if (q && a) {
+                const item: any = { question: q, answer: a, type };
+                if (type === 'MULTIPLE_CHOICE' && opts) {
+                    item.options = opts.split(',').map(s => s.trim()).filter(Boolean);
+                }
+                newItems.push(item);
+            }
+        }
+    });
+    
+    exercise.data = newItems;
+    saveLibraryToStorage();
+    renderLibraryContent();
+    editExerciseModal.classList.add('hidden');
+});
+
 // --- Editor Modals --- //
 // Save Flashcards Modal
 closeSaveFlashcardsModalBtn.addEventListener('click', () => saveFlashcardsModal.classList.add('hidden'));
@@ -3074,239 +3310,10 @@ saveFlashcardsForm.addEventListener('submit', (e) => {
     const newSet: SavedFlashcardSet = {
         id: Date.now().toString(),
         name,
-        cards: selectedCards,
+        cards: selectedCards
     };
     userFlashcardSets.unshift(newSet);
     saveLibraryToStorage();
-    alert('Conjunto de cartões salvo!');
+    renderLibraryContent();
     saveFlashcardsModal.classList.add('hidden');
-    saveFlashcardsForm.reset();
 });
-
-// Solution Editor (Markdown)
-actionEditFromViewer.addEventListener('click', () => {
-    const solution = userSolutions.find(s => s.id === activeItemId);
-    if (!solution) return;
-
-    solutionDetailViewer.classList.add('hidden');
-    solutionDetailEditor.classList.remove('hidden');
-    
-    markdownEditorTextarea.value = solution.markdownContent || convertSolutionToMarkdown(solution);
-    markdownPreviewArea.innerHTML = marked.parse(markdownEditorTextarea.value) as string;
-
-    // Reset to edit tab
-    markdownEditorTabs.forEach(t => t.classList.remove('active'));
-    document.querySelector('[data-tab="edit"]')?.classList.add('active');
-    markdownEditorArea.classList.remove('hidden');
-    markdownPreviewArea.classList.add('hidden');
-});
-
-markdownEditorTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-        const isEditTab = tab.getAttribute('data-tab') === 'edit';
-        markdownEditorTabs.forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        markdownEditorArea.classList.toggle('hidden', !isEditTab);
-        markdownPreviewArea.classList.toggle('hidden', isEditTab);
-        if(!isEditTab) {
-            markdownPreviewArea.innerHTML = marked.parse(markdownEditorTextarea.value) as string;
-        }
-    });
-});
-cancelMarkdownEdit.addEventListener('click', () => {
-    solutionDetailViewer.classList.remove('hidden');
-    solutionDetailEditor.classList.add('hidden');
-});
-saveMarkdownEdit.addEventListener('click', () => {
-    const solution = userSolutions.find(s => s.id === activeItemId);
-    if (!solution) return;
-    
-    solution.markdownContent = markdownEditorTextarea.value;
-    // Potentially update the core solution object if we could parse it back, but for now just saving markdown is safer.
-    
-    saveLibraryToStorage();
-    solutionDetailModal.classList.add('hidden');
-    alert('Solução atualizada!');
-    renderLibraryContent();
-});
-
-
-// Add listener for the close button on the solution detail/editor modal
-closeSolutionDetailModalBtn.addEventListener('click', () => {
-    solutionDetailModal.classList.add('hidden');
-});
-
-// Add live preview functionality to the markdown editor
-markdownEditorTextarea.addEventListener('input', () => {
-    markdownPreviewArea.innerHTML = marked.parse(markdownEditorTextarea.value) as string;
-});
-
-
-// Edit Card Set Modal
-closeEditCardSetModalBtn.addEventListener('click', () => editCardSetModal.classList.add('hidden'));
-addNewCardBtn.addEventListener('click', () => {
-    const newItem = document.createElement('div');
-    newItem.className = 'editable-item';
-    newItem.innerHTML = `
-        <div class="editable-item-inputs">
-            <input type="text" placeholder="Termo">
-            <textarea placeholder="Definição"></textarea>
-        </div>
-        <button type="button" class="delete-item-btn">&times;</button>
-    `;
-    editCardSetList.appendChild(newItem);
-});
-editCardSetList.addEventListener('click', (e) => {
-    if ((e.target as HTMLElement).classList.contains('delete-item-btn')) {
-        (e.target as HTMLElement).closest('.editable-item')?.remove();
-    }
-});
-editCardSetForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const cardSet = userFlashcardSets.find(cs => cs.id === activeItemId);
-    if (!cardSet) return;
-    
-    cardSet.name = editCardSetNameInput.value;
-    const newCards: Flashcard[] = [];
-    editCardSetList.querySelectorAll<HTMLElement>('.editable-item').forEach(item => {
-        const term = (item.querySelector('input') as HTMLInputElement).value.trim();
-        const definition = (item.querySelector('textarea') as HTMLTextAreaElement).value.trim();
-        if (term && definition) {
-            newCards.push({ term, definition });
-        }
-    });
-    cardSet.cards = newCards;
-    
-    saveLibraryToStorage();
-    renderLibraryContent();
-    editCardSetModal.classList.add('hidden');
-    alert('Conjunto de cartões atualizado!');
-});
-
-// Edit Exercise Modal
-function createEditableExerciseItem(item: any, mode: SavedExercise['mode'], index: number): HTMLElement {
-    const div = document.createElement('div');
-    div.className = 'editable-item';
-    div.dataset.index = index.toString();
-    
-    let inputsHtml = '';
-    switch(mode) {
-        case 'Aprender':
-            inputsHtml = `
-                <textarea class="q-input" placeholder="Questão">${item.question}</textarea>
-                <textarea class="a-input" placeholder="Resposta">${item.answer}</textarea>
-            `;
-            break;
-        case 'Combinar':
-            inputsHtml = `
-                <input type="text" class="q-input" placeholder="Termo" value="${item.term}">
-                <textarea class="a-input" placeholder="Definição">${item.definition}</textarea>
-            `;
-            break;
-        case 'Misto':
-            const q = item as MistoQuestion;
-            const optionsHtml = (q.options || ['','','','']).map((opt, i) => `<input type="text" class="opt-input" data-opt-index="${i}" placeholder="Opção ${i+1}" value="${opt}">`).join('');
-            inputsHtml = `
-                <textarea class="q-input" placeholder="Questão">${q.question}</textarea>
-                <select class="type-input">
-                    <option value="MULTIPLE_CHOICE" ${q.type === 'MULTIPLE_CHOICE' ? 'selected' : ''}>Múltipla Escolha</option>
-                    <option value="FILL_IN_BLANK" ${q.type === 'FILL_IN_BLANK' ? 'selected' : ''}>Preencher Lacuna</option>
-                    <option value="OPEN_ENDED" ${q.type === 'OPEN_ENDED' ? 'selected' : ''}>Aberta</option>
-                </select>
-                <textarea class="a-input" placeholder="Resposta">${q.answer}</textarea>
-                <div class="misto-options-editor ${q.type !== 'MULTIPLE_CHOICE' ? 'hidden' : ''}">${optionsHtml}</div>
-            `;
-            break;
-    }
-    
-    div.innerHTML = `<div class="editable-item-inputs">${inputsHtml}</div><button type="button" class="delete-item-btn">&times;</button>`;
-    
-    // Add listener for Misto type change
-    const typeSelect = div.querySelector<HTMLSelectElement>('.type-input');
-    if (typeSelect) {
-        typeSelect.addEventListener('change', () => {
-            const optionsEditor = div.querySelector<HTMLElement>('.misto-options-editor');
-            optionsEditor?.classList.toggle('hidden', typeSelect.value !== 'MULTIPLE_CHOICE');
-        });
-    }
-
-    return div;
-}
-
-closeEditExerciseModalBtn.addEventListener('click', () => editExerciseModal.classList.add('hidden'));
-editExerciseContent.addEventListener('click', e => {
-    if ((e.target as HTMLElement).classList.contains('delete-item-btn')) {
-        (e.target as HTMLElement).closest('.editable-item')?.remove();
-    }
-});
-addNewExerciseItemBtn.addEventListener('click', () => {
-    const mode = editExerciseContent.dataset.mode as SavedExercise['mode'];
-    let newItemData: any;
-    switch(mode) {
-        case 'Aprender': newItemData = { question: '', answer: '' }; break;
-        case 'Combinar': newItemData = { term: '', definition: '' }; break;
-        case 'Misto': newItemData = { question: '', type: 'OPEN_ENDED', answer: '', options: [] }; break;
-        default: return;
-    }
-    const index = editExerciseContent.children.length;
-    editExerciseContent.appendChild(createEditableExerciseItem(newItemData, mode, index));
-});
-
-editExerciseForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const exercise = userExercises.find(ex => ex.id === activeItemId);
-    if (!exercise) return;
-
-    exercise.name = editExerciseNameInput.value.trim();
-    const newData: any[] = [];
-    editExerciseContent.querySelectorAll<HTMLElement>('.editable-item').forEach(itemEl => {
-        const qInput = itemEl.querySelector<HTMLInputElement>('.q-input');
-        const aInput = itemEl.querySelector<HTMLInputElement>('.a-input');
-        if (!qInput || !aInput) return;
-
-        switch(exercise.mode) {
-            case 'Aprender':
-                if (qInput.value && aInput.value) newData.push({ question: qInput.value, answer: aInput.value });
-                break;
-            case 'Combinar':
-                 if (qInput.value && aInput.value) newData.push({ term: qInput.value, definition: aInput.value });
-                break;
-            case 'Misto':
-                const typeInput = itemEl.querySelector<HTMLSelectElement>('.type-input');
-                if (qInput.value && aInput.value && typeInput) {
-                    const mistoItem: MistoQuestion = { question: qInput.value, answer: aInput.value, type: typeInput.value as QuestionType };
-                    if (mistoItem.type === 'MULTIPLE_CHOICE') {
-                        mistoItem.options = Array.from(itemEl.querySelectorAll<HTMLInputElement>('.opt-input')).map(opt => opt.value);
-                    }
-                    newData.push(mistoItem);
-                }
-                break;
-        }
-    });
-    
-    exercise.data = newData;
-    saveLibraryToStorage();
-    renderLibraryContent();
-    editExerciseModal.classList.add('hidden');
-    alert('Exercício atualizado!');
-});
-
-
-// --- Initialization ---
-
-// Set initial theme
-const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
-applyTheme(savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
-
-// Set up infinite carousel
-setupInfiniteCarousel();
-
-// Check login state on load
-const storedLogin = localStorage.getItem('isLoggedIn');
-const storedUser = localStorage.getItem('currentUser');
-if (storedLogin === 'true' && storedUser) {
-    isLoggedIn = true;
-    currentUser = JSON.parse(storedUser);
-}
-updateAuthUI();
-showMainView('home');

@@ -1,6 +1,8 @@
 {
   "name": "ScientiaGen",
   "description": "ScientiaGen: Sua plataforma de estudos inteligente, potencializada pela API Gemini. Crie materiais de estudo interativos, desde flashcards e quizzes a soluções guiadas, salve seu progresso, edite conteúdo e receba relatórios de desempenho detalhados. Aprenda de forma mais inteligente com o poder da IA.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "camera"
+  ],
   "prompt": ""
 }

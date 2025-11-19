@@ -474,6 +474,77 @@ button.secondary-btn:hover {
   box-shadow: none;
 }
 
+/* --- Attachment Area Styles --- */
+.attachment-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.icon-only-btn {
+    padding: 10px;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+}
+
+.file-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: light-dark(var(--light-card-bg), var(--dark-card-bg));
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    border: 1px solid light-dark(var(--light-border), var(--dark-border));
+}
+
+.close-preview-btn {
+    background: none;
+    border: none;
+    color: light-dark(var(--light-text-secondary), var(--dark-text-secondary));
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+}
+.close-preview-btn:hover {
+    color: light-dark(var(--light-error), var(--dark-error));
+}
+
+/* Camera Styles */
+.camera-container {
+    width: 100%;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: black;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#cameraVideo {
+    width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+}
+
+.camera-controls {
+    padding: 15px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    background-color: rgba(0,0,0,0.7);
+    position: absolute;
+    bottom: 0;
+}
+
+/* --- Error Messages --- */
 .error-message, .solution-message, .match-message, .learn-message, .misto-message, #loginError {
   color: light-dark(var(--light-error), var(--dark-error));
   margin-top: 10px;
