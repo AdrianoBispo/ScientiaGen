@@ -24,3 +24,29 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8; 
 }
+
+@layer components {
+  .flashcard {
+    @apply w-80 h-56 cursor-pointer;
+    perspective: 1000px;
+  }
+  
+  .flashcard-inner {
+    @apply relative w-full h-full text-center transition-transform duration-500 rounded-xl shadow-md;
+    transform-style: preserve-3d;
+  }
+  
+  .flashcard.flipped .flashcard-inner {
+    transform: rotateY(180deg);
+  }
+  
+  .flashcard-front, .flashcard-back {
+    @apply absolute w-full h-full flex flex-col justify-center items-center p-6 border rounded-xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 box-border;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  
+  .flashcard-back {
+    transform: rotateY(180deg);
+  }
+}
