@@ -1,4 +1,5 @@
 import React from 'react';
+import { Camera, Folder } from 'lucide-react';
 
 export function Guided() {
     return (
@@ -16,10 +17,10 @@ export function Guided() {
                  </div>
                  <div className="flex justify-end gap-3">
                      <button className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-2">
-                         📷 Câmera
+                         <Camera size={20} /> Câmera
                      </button>
                      <button className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-2">
-                         📁 Arquivo
+                         <Folder size={20} /> Arquivo
                      </button>
                      <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors">
                          Resolver

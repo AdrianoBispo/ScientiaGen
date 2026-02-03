@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { Brain, GalleryVerticalEnd, GraduationCap } from 'lucide-react';
 
 export function Home() {
     return (
@@ -15,29 +16,29 @@ export function Home() {
                     to="/learn"
                     title="Modo Aprender" 
                     desc="Teste seus conhecimentos com quizzes gerados por IA."
-                    icon="🧠"
+                    icon={<Brain size={40} />}
                 />
                 <FeatureCard 
                     to="/flashcards"
                     title="Cartões de Estudo" 
                     desc="Memorize conceitos com flashcards interativos."
-                    icon="🃏"
+                    icon={<GalleryVerticalEnd size={40} />}
                 />
                 <FeatureCard 
                     to="/guided"
                     title="Aprendizagem Guiada" 
                     desc="Receba ajuda passo a passo para resolver problemas."
-                    icon="🎓"
+                    icon={<GraduationCap size={40} />}
                 />
             </div>
         </div>
     );
 }
 
-function FeatureCard({ title, desc, icon, to }: { title: string, desc: string, icon: string, to: string }) {
+function FeatureCard({ title, desc, icon, to }: { title: string, desc: string, icon: React.ReactNode, to: string }) {
     return (
         <NavLink to={to} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex flex-col items-center text-center gap-4 group">
-            <span className="text-4xl mb-2">{icon}</span>
+            <span className="mb-2 text-blue-600">{icon}</span>
             <h3 className="text-xl font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">{title}</h3>
             <p className="text-gray-600">{desc}</p>
         </NavLink>

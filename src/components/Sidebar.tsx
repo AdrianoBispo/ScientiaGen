@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { Home, Library, Brain, GalleryVerticalEnd, Puzzle, Shuffle, GraduationCap } from 'lucide-react';
 
 export function Sidebar() {
     const [isHovered, setIsHovered] = useState(false);
@@ -16,20 +17,20 @@ export function Sidebar() {
             onMouseLeave={() => setIsHovered(false)}
         >
             <nav className="flex flex-col gap-2 p-3 mt-4">
-                <NavItem to="/" icon="🏠" label="Início" isHovered={isHovered} />
+                <NavItem to="/" icon={<Home size={24} />} label="Início" isHovered={isHovered} />
                 <div className="border-t border-gray-100 my-2"></div>
-                <NavItem to="/library" icon="📚" label="Biblioteca" isHovered={isHovered} />
-                <NavItem to="/learn" icon="🧠" label="Aprender" isHovered={isHovered} />
-                <NavItem to="/flashcards" icon="🃏" label="Cartões" isHovered={isHovered} />
-                <NavItem to="/match" icon="🧩" label="Combinar" isHovered={isHovered} />
-                <NavItem to="/mixed" icon="🔀" label="Misto" isHovered={isHovered} />
-                <NavItem to="/guided" icon="🎓" label="Aprendizagem Guiada" isHovered={isHovered} />
+                <NavItem to="/library" icon={<Library size={24} />} label="Biblioteca" isHovered={isHovered} />
+                <NavItem to="/learn" icon={<Brain size={24} />} label="Aprender" isHovered={isHovered} />
+                <NavItem to="/flashcards" icon={<GalleryVerticalEnd size={24} />} label="Cartões" isHovered={isHovered} />
+                <NavItem to="/match" icon={<Puzzle size={24} />} label="Combinar" isHovered={isHovered} />
+                <NavItem to="/mixed" icon={<Shuffle size={24} />} label="Misto" isHovered={isHovered} />
+                <NavItem to="/guided" icon={<GraduationCap size={24} />} label="Aprendizagem Guiada" isHovered={isHovered} />
             </nav>
         </aside>
     );
 }
 
-function NavItem({ icon, label, isHovered, to }: { icon: string, label: string, isHovered: boolean, to: string }) {
+function NavItem({ icon, label, isHovered, to }: { icon: React.ReactNode, label: string, isHovered: boolean, to: string }) {
     return (
         <NavLink 
             to={to}
@@ -38,7 +39,7 @@ function NavItem({ icon, label, isHovered, to }: { icon: string, label: string, 
                 ${isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-100 hover:text-blue-600'}
             `}
         >
-            <span className="text-xl min-w-[24px] text-center">{icon}</span>
+            <span className="min-w-[24px] flex justify-center">{icon}</span>
             <span 
                 className={`
                     whitespace-nowrap font-medium transition-opacity duration-200
