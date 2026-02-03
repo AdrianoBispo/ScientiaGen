@@ -41,12 +41,17 @@
   }
   
   .flashcard-front, .flashcard-back {
-    @apply absolute w-full h-full flex flex-col justify-center items-center p-6 border rounded-xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 box-border;
+    @apply absolute w-full h-full flex flex-col justify-center items-center p-6 border rounded-xl border-gray-200 box-border shadow-sm transition-colors duration-200;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
+
+  .flashcard-front {
+    @apply bg-white;
+  }
   
   .flashcard-back {
+    @apply bg-blue-50 text-blue-900;
     transform: rotateY(180deg);
   }
 }

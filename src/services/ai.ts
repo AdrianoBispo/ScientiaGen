@@ -1,13 +1,13 @@
 import { GoogleGenAI } from "@google/genai";
 
 // Use the API key from the environment configuration
-// The vite config maps process.env.API_KEY to the actual env var
-const apiKey = process.env.API_KEY || '';
+// We use process.env because it's defined in vite.config.ts
+const apiKey = process.env.VITE_GEMINI_API_KEY || '';
 
 const ai = new GoogleGenAI({ apiKey });
 
 export interface FlashcardData {
-  term: string;
+  term: string; 
   definition: string;
 }
 
@@ -26,7 +26,7 @@ export async function generateFlashcards(topic: string, count: number = 5): Prom
       },
     });
 
-    const text = result.text();
+    const text = result.text;
     if (!text) {
         throw new Error("No response from AI");
     }
