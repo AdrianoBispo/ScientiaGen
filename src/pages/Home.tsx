@@ -58,6 +58,14 @@ export function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-8 overflow-hidden">
+      <style>{`
+        .swiper-button-prev,
+        .swiper-button-next {
+          top: var(--swiper-navigation-top-offset, 50%);
+          margin-top: 0;
+          transform: translateY(-50%);
+        }
+      `}</style>
       <h1 className="text-4xl font-bold text-gray-800 dark:text-white">
         Boas-vindas ao ScientiaGen
       </h1>
