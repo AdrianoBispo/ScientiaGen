@@ -5,10 +5,6 @@ import { Plus, Brain, LayoutGrid, Loader2 } from 'lucide-react';
 
 export function Flashcards() {
   const [cards, setCards] = useState<FlashcardData[]>([
-    { 
-        term: "React Hooks", 
-        definition: "Funções que permitem usar state e outros recursos do React sem escrever uma classe (ex: useState, useEffect)." 
-    }
   ]);
   
   const [mode, setMode] = useState<'study' | 'manual' | 'ai'>('study');
@@ -136,8 +132,8 @@ export function Flashcards() {
                              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Quantidade de Cards: {aiCount}</label>
                              <input 
                                 type="range"
-                                min="3"
-                                max="20"
+                                min="1"
+                                max="100"
                                 value={aiCount}
                                 onChange={(e) => setAiCount(Number(e.target.value))}
                                 className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
