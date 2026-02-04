@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
 import { generateMixedQuiz, checkAnswer, MistoQuestion, QuestionType } from '../services/ai';
+import { History, Save, Trash2 } from 'lucide-react';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+
+interface MixedHistoryItem {
+    id: string;
+    date: string;
+    topic: string;
+    score: number;
+    total: number;
+}
 
 export function Mixed() {
     const [topic, setTopic] = useState('');
@@ -11,6 +21,26 @@ export function Mixed() {
     const [feedback, setFeedback] = useState<{ isCorrect: boolean; feedback: string } | null>(null);
     const [score, setScore] = useState(0);
     const [isChecking, setIsChecking] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
+
+    const [history, setHistory] = useLocalStorage<MixedHistoryItem[]>('mixedHistory', []);
+
+    const handleSaveHistory = () => {
+        const newItem: MixedHistoryItem = {
+            id: crypto.randomUUID(),
+            date: new Date().toISOString(),
+            topic: topic,
+            score: score,
+            total: questions.length
+        };
+        setHistory([newItem, ...history]);
+        alert('Resultado salvo!');
+    };
+
+    const handleDeleteHistoryItem = (id: string) => {
+        setHistory(history.filter(item => item.id !== id));
+    };
+
 
     const startQuiz = async () => {
         if (!topic.trim()) return;
@@ -88,6 +118,41 @@ export function Mixed() {
                         {isLoading ? 'Gerando Quiz...' : 'Iniciar Quiz'}
                     </button>
                 </div>
+
+                <button 
+                    onClick={() => setShowHistory(!showHistory)} 
+                    className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
+                >
+                    <History size={20} /> {showHistory ? 'Ocultar Histórico' : 'Ver Histórico'}
+                </button>
+
+                {showHistory && (
+                 <div className="w-full bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 mt-4 text-left animate-in slide-in-from-top-4">
+                     <h3 className="font-bold text-gray-800 dark:text-white mb-4">Histórico Misto</h3>
+                     {history.length === 0 ? (
+                         <p className="text-gray-500 dark:text-gray-400 text-sm">Nenhum histórico salvo.</p>
+                     ) : (
+                         <div className="space-y-3">
+                             {history.map(item => (
+                                 <div key={item.id} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg border border-transparent hover:border-gray-200 dark:hover:border-slate-600 transition-all">
+                                     <div>
+                                         <div className="font-medium text-gray-800 dark:text-gray-200">{item.topic}</div>
+                                         <div className="text-xs text-gray-500">
+                                            {new Date(item.date).toLocaleDateString()} • Score: {item.score}/{item.total}
+                                         </div>
+                                     </div>
+                                     <button 
+                                         onClick={() => handleDeleteHistoryItem(item.id)}
+                                         className="p-2 text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                                     >
+                                         <Trash2 size={16} />
+                                     </button>
+                                 </div>
+                             ))}
+                         </div>
+                     )}
+                 </div>
+             )}
             </div>
         );
     }
@@ -103,12 +168,20 @@ export function Mixed() {
                     <span className="text-gray-500 dark:text-gray-400">de {questions.length}</span>
                 </div>
 
-                <button 
-                    onClick={() => setCurrentStep('setup')}
-                    className="px-8 py-3 bg-gray-800 dark:bg-slate-700 text-white rounded-xl font-medium hover:bg-gray-900 dark:hover:bg-slate-600 transition"
-                >
-                    Voltar ao Início
-                </button>
+                <div className="flex gap-4">
+                    <button 
+                        onClick={handleSaveHistory}
+                        className="px-8 py-3 bg-green-600 dark:bg-green-500 text-white rounded-xl font-medium hover:bg-green-700 dark:hover:bg-green-600 transition flex items-center gap-2"
+                    >
+                        <Save size={20} /> Salvar
+                    </button>
+                    <button 
+                        onClick={() => setCurrentStep('setup')}
+                        className="px-8 py-3 bg-gray-800 dark:bg-slate-700 text-white rounded-xl font-medium hover:bg-gray-900 dark:hover:bg-slate-600 transition"
+                    >
+                        Voltar ao Início
+                    </button>
+                </div>
              </div>
         );
     }

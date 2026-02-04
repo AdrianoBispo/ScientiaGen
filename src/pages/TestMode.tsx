@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { generateTestQuestions, TestQuestion } from '../services/ai';
-import { Loader2, CheckCircle2, XCircle, ChevronRight, RefreshCw, BookOpen } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, ChevronRight, RefreshCw, BookOpen, History, Save, Trash2 } from 'lucide-react';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+
+interface TestHistoryItem {
+    id: string;
+    date: string;
+    topic: string;
+    score: number;
+    total: number;
+}
 
 export function TestMode() {
     const [topic, setTopic] = useState('');
@@ -11,6 +20,25 @@ export function TestMode() {
     const [isChecked, setIsChecked] = useState(false);
     const [score, setScore] = useState(0);
     const [gameStatus, setGameStatus] = useState<'idle' | 'playing' | 'finished'>('idle');
+    const [showHistory, setShowHistory] = useState(false);
+
+    const [history, setHistory] = useLocalStorage<TestHistoryItem[]>('testHistory', []);
+
+    const handleSaveHistory = () => {
+        const newItem: TestHistoryItem = {
+            id: crypto.randomUUID(),
+            date: new Date().toISOString(),
+            topic: topic,
+            score: score,
+            total: questions.length
+        };
+        setHistory([newItem, ...history]);
+        alert('Resultado salvo!');
+    };
+
+    const handleDeleteHistoryItem = (id: string) => {
+        setHistory(history.filter(item => item.id !== id));
+    };
 
     const handleStartGame = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -105,6 +133,41 @@ export function TestMode() {
                     )}
                 </button>
             </form>
+
+            <button 
+                onClick={() => setShowHistory(!showHistory)} 
+                className="mt-6 flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
+            >
+                <History size={20} /> {showHistory ? 'Ocultar Histórico' : 'Ver Histórico'}
+            </button>
+
+            {showHistory && (
+                 <div className="w-full bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 mt-4 text-left animate-in slide-in-from-top-4">
+                     <h3 className="font-bold text-gray-800 dark:text-white mb-4">Histórico de Testes</h3>
+                     {history.length === 0 ? (
+                         <p className="text-gray-500 dark:text-gray-400 text-sm">Nenhum histórico salvo.</p>
+                     ) : (
+                         <div className="space-y-3">
+                             {history.map(item => (
+                                 <div key={item.id} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg border border-transparent hover:border-gray-200 dark:hover:border-slate-600 transition-all">
+                                     <div>
+                                         <div className="font-medium text-gray-800 dark:text-gray-200">{item.topic}</div>
+                                         <div className="text-xs text-gray-500">
+                                            {new Date(item.date).toLocaleDateString()} • Score: {item.score}/{item.total}
+                                         </div>
+                                     </div>
+                                     <button 
+                                         onClick={() => handleDeleteHistoryItem(item.id)}
+                                         className="p-2 text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                                     >
+                                         <Trash2 size={16} />
+                                     </button>
+                                 </div>
+                             ))}
+                         </div>
+                     )}
+                 </div>
+             )}
         </div>
     );
 
@@ -262,13 +325,23 @@ export function TestMode() {
                     </p>
                 </div>
 
-                <button
-                    onClick={handleRestart}
-                    className="w-full py-4 bg-gray-900 dark:bg-slate-700 hover:bg-gray-800 dark:hover:bg-slate-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
-                >
-                    <RefreshCw size={20} />
-                    Novo Teste
-                </button>
+                <div className="w-full space-y-3">
+                    <button
+                        onClick={handleSaveHistory}
+                        className="w-full py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                    >
+                        <Save size={20} />
+                        Salvar Resultado
+                    </button>
+
+                    <button
+                        onClick={handleRestart}
+                        className="w-full py-4 bg-gray-900 dark:bg-slate-700 hover:bg-gray-800 dark:hover:bg-slate-600 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                    >
+                        <RefreshCw size={20} />
+                        Novo Teste
+                    </button>
+                </div>
             </div>
         );
     };

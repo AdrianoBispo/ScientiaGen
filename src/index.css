@@ -56,4 +56,23 @@
     @apply bg-blue-50 text-blue-900 dark:bg-blue-900/30 dark:text-blue-100;
     transform: rotateY(180deg);
   }
+
+  /* Animations for Cards */
+  @keyframes slideOutRight {
+    to { transform: translateX(150%) rotate(20deg); opacity: 0; }
+  }
+  @keyframes slideOutLeft {
+    to { transform: translateX(-150%) rotate(-20deg); opacity: 0; }
+  }
+  .slide-out-right { animation: slideOutRight 0.4s forwards ease-in-out; }
+  .slide-out-right .flashcard-front,
+  .slide-out-right .flashcard-back {
+    @apply border-green-500 bg-green-50 dark:bg-green-900/30 dark:border-green-500 transition-colors duration-200;
+  }
+
+  .slide-out-left { animation: slideOutLeft 0.4s forwards ease-in-out; }
+  .slide-out-left .flashcard-front,
+  .slide-out-left .flashcard-back {
+    @apply border-red-500 bg-red-50 dark:bg-red-900/30 dark:border-red-500 transition-colors duration-200;
+  }
 }

@@ -1,7 +1,15 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Folder, X, RefreshCw, Volume2, Save } from 'lucide-react';
+import { Camera, Folder, X, RefreshCw, Volume2, Save, Trash2, History } from 'lucide-react';
 import { solveProblem, Solution } from '../services/ai';
 import { marked } from 'marked';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+
+interface GuidedHistoryItem {
+    id: string;
+    date: string;
+    problem: string; 
+    solution: Solution;
+}
 
 export function Guided() {
     const [problemText, setProblemText] = useState('');
@@ -10,11 +18,39 @@ export function Guided() {
     const [solution, setSolution] = useState<Solution | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [showCamera, setShowCamera] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
     
+    const [history, setHistory] = useLocalStorage<GuidedHistoryItem[]>('guidedHistory', []);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
+
+    const handleSaveToHistory = () => {
+        if (!solution) return;
+        
+        const newItem: GuidedHistoryItem = {
+            id: crypto.randomUUID(),
+            date: new Date().toISOString(),
+            problem: problemText || 'Problema com arquivo anexado',
+            solution: solution
+        };
+
+        setHistory([newItem, ...history]);
+        alert('Solução salva no histórico!');
+    };
+
+    const handleDeleteHistoryItem = (id: string) => {
+        setHistory(history.filter(item => item.id !== id));
+    };
+
+    const loadHistoryItem = (item: GuidedHistoryItem) => {
+        setProblemText(item.problem);
+        setSolution(item.solution);
+        setShowHistory(false);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -130,8 +166,45 @@ export function Guided() {
 
     return (
         <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-10">
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Solução Guiada</h1>
-            <p className="text-gray-600 dark:text-gray-300">Envie um problema ou dúvida e receba uma explicação passo a passo.</p>
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Solução Guiada</h1>
+                    <p className="text-gray-600 dark:text-gray-300">Envie um problema ou dúvida e receba uma explicação passo a passo.</p>
+                </div>
+                <button 
+                    onClick={() => setShowHistory(!showHistory)}
+                    className={`p-2 rounded-lg transition-colors ${showHistory ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'}`}
+                    title="Histórico"
+                >
+                    <History size={24} />
+                </button>
+            </div>
+
+            {showHistory && (
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4 animate-in slide-in-from-top-4">
+                    <h3 className="font-bold text-gray-800 dark:text-white mb-4">Histórico de Soluções</h3>
+                    {history.length === 0 ? (
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">Nenhuma solução salva ainda.</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {history.map(item => (
+                                <div key={item.id} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg border border-transparent hover:border-gray-200 dark:hover:border-slate-600 transition-all">
+                                    <div className="flex-1 cursor-pointer" onClick={() => loadHistoryItem(item)}>
+                                        <div className="font-medium text-gray-800 dark:text-gray-200 truncate">{item.solution.title}</div>
+                                        <div className="text-xs text-gray-500">{new Date(item.date).toLocaleDateString()} - {item.problem.substring(0, 30)}...</div>
+                                    </div>
+                                    <button 
+                                        onClick={() => handleDeleteHistoryItem(item.id)}
+                                        className="p-2 text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg ml-2"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
             
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
                  <div className="mb-4">
@@ -228,7 +301,13 @@ export function Guided() {
                                 <Volume2 size={18} />
                             </button>
                         </h2>
-                        {/* Future: Add save button here */}
+                        <button 
+                            onClick={handleSaveToHistory}
+                            className="text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors flex items-center gap-1 text-sm font-medium"
+                            title="Salvar no Histórico"
+                        >
+                            <Save size={18} /> <span className="hidden sm:inline">Salvar</span>
+                        </button>
                     </div>
 
                     <div className="space-y-8">

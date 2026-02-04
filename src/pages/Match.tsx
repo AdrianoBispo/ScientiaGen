@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateFlashcards, FlashcardData } from '../services/ai';
-import { Play, Settings, RefreshCw, Timer, CheckCircle, XCircle } from 'lucide-react';
+import { Play, Settings, RefreshCw, Timer, CheckCircle, XCircle, History, Trash2, Save } from 'lucide-react';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 
 type GameState = 'setup' | 'loading' | 'playing' | 'finished';
 
@@ -10,6 +11,15 @@ interface MatchCard {
     type: 'term' | 'definition';
     matched: boolean;
     originalPairId: string; // Used to identify correct pairs
+}
+
+interface MatchHistoryItem {
+    id: string;
+    date: string;
+    topic: string;
+    pairs: number;
+    timeTaken: number;
+    completed: boolean;
 }
 
 export function Match() {
@@ -25,8 +35,30 @@ export function Match() {
     const [gameItems, setGameItems] = useState<{terms: MatchCard[], definitions: MatchCard[]}>({ terms: [], definitions: [] });
     const [draggedItem, setDraggedItem] = useState<MatchCard | null>(null);
     const [errorMsg, setErrorMsg] = useState('');
+    const [showHistory, setShowHistory] = useState(false);
+
+    const [history, setHistory] = useLocalStorage<MatchHistoryItem[]>('matchHistory', []);
 
     const timerRef = useRef<number | null>(null);
+
+    const handleSaveHistory = () => {
+        const timeUsed = timeLimit - timeLeft;
+        const newItem: MatchHistoryItem = {
+            id: crypto.randomUUID(),
+            date: new Date().toISOString(),
+            topic: topic,
+            pairs: pairCount,
+            timeTaken: timeUsed,
+            completed: matches === pairCount
+        };
+        setHistory([newItem, ...history]);
+        alert('Resultado salvo!');
+    };
+
+    const handleDeleteHistoryItem = (id: string) => {
+        setHistory(history.filter(item => item.id !== id));
+    };
+
 
     // Initial default values for config
     useEffect(() => {
@@ -195,6 +227,41 @@ export function Match() {
                         </button>
                     </div>
                 </div>
+
+                <button 
+                    onClick={() => setShowHistory(!showHistory)} 
+                    className="mt-6 flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
+                >
+                    <History size={20} /> {showHistory ? 'Ocultar Histórico' : 'Ver Histórico'}
+                </button>
+
+                {showHistory && (
+                 <div className="w-full max-w-lg bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 mt-4 text-left animate-in slide-in-from-top-4">
+                     <h3 className="font-bold text-gray-800 dark:text-white mb-4">Histórico de Partidas</h3>
+                     {history.length === 0 ? (
+                         <p className="text-gray-500 dark:text-gray-400 text-sm">Nenhum histórico salvo.</p>
+                     ) : (
+                         <div className="space-y-3">
+                             {history.map(item => (
+                                 <div key={item.id} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg border border-transparent hover:border-gray-200 dark:hover:border-slate-600 transition-all">
+                                     <div>
+                                         <div className="font-medium text-gray-800 dark:text-gray-200">{item.topic}</div>
+                                         <div className="text-xs text-gray-500">
+                                            {new Date(item.date).toLocaleDateString()} • {item.completed ? 'Vitória' : 'Derrota'} • {item.timeTaken}s
+                                         </div>
+                                     </div>
+                                     <button 
+                                         onClick={() => handleDeleteHistoryItem(item.id)}
+                                         className="p-2 text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                                     >
+                                         <Trash2 size={16} />
+                                     </button>
+                                 </div>
+                             ))}
+                         </div>
+                     )}
+                 </div>
+             )}
             </div>
         );
     }
@@ -226,6 +293,13 @@ export function Match() {
                     <p className="text-gray-500 dark:text-gray-400 mb-1">Pontuação Final</p>
                     <p className="text-4xl font-bold text-gray-800 dark:text-white mb-6">{matches} / {gameItems.terms.length}</p>
                     
+                    <button 
+                        onClick={handleSaveHistory}
+                        className="w-full py-3 mb-3 bg-green-600 dark:bg-green-500 text-white rounded-xl font-medium hover:bg-green-700 dark:hover:bg-green-600 transition flex items-center justify-center gap-2"
+                    >
+                       <Save size={20} /> Salvar Resultado
+                    </button>
+
                     <button 
                         onClick={() => setGameState('setup')}
                         className="w-full py-3 bg-gray-800 dark:bg-slate-700 text-white rounded-xl font-medium hover:bg-gray-900 dark:hover:bg-slate-600 transition"

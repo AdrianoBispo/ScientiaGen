@@ -4,10 +4,23 @@ import { Volume2 } from 'lucide-react';
 interface CardProps {
   term: string;
   definition: string;
+  isFlipped?: boolean;
+  onFlip?: () => void;
+  className?: string; // Allow passing extra classes for animations
 }
 
-export function Card({ term, definition }: CardProps) {
-  const [isFlipped, setIsFlipped] = useState(false);
+export function Card({ term, definition, isFlipped: controlledFlipped, onFlip, className = '' }: CardProps) {
+  const [internalFlipped, setInternalFlipped] = useState(false);
+
+  const isFlipped = controlledFlipped !== undefined ? controlledFlipped : internalFlipped;
+
+  const handleClick = () => {
+    if (onFlip) {
+      onFlip();
+    } else {
+      setInternalFlipped(!internalFlipped);
+    }
+  };
 
   const handleSpeech = (e: React.MouseEvent, text: string) => {
     e.stopPropagation();
@@ -21,8 +34,8 @@ export function Card({ term, definition }: CardProps) {
 
   return (
     <div 
-      className={`flashcard ${isFlipped ? 'flipped' : ''}`} 
-      onClick={() => setIsFlipped(!isFlipped)}
+      className={`flashcard ${isFlipped ? 'flipped' : ''} ${className}`} 
+      onClick={handleClick}
     >
       <div className="flashcard-inner">
         <div className="flashcard-front">

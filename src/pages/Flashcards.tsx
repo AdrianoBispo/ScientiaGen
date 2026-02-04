@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Card } from '../components/Card';
 import { generateFlashcards, FlashcardData } from '../services/ai';
 import { 
@@ -16,7 +17,7 @@ interface FlashcardSet {
 
 export function Flashcards() {
   // Global State
-  const [sets, setSets] = useState<FlashcardSet[]>([
+  const [sets, setSets] = useLocalStorage<FlashcardSet[]>('flashcardSets', [
     {
       id: '1',
       title: 'Cartões: Roma Antiga',
@@ -54,6 +55,11 @@ export function Flashcards() {
 
   // View Modal State
   const [viewCardIndex, setViewCardIndex] = useState(0);
+
+  // Study Mode State
+  const [isStudyCardFlipped, setIsStudyCardFlipped] = useState(false);
+  const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
+  const touchStartX = useRef<number | null>(null);
 
   // Manual Creation State
   const [manualSetName, setManualSetName] = useState('');
@@ -128,6 +134,42 @@ export function Flashcards() {
       window.speechSynthesis.speak(utterance);
     }
   };
+
+  const handleStudyNextCard = (direction: 'left' | 'right') => {
+      setSwipeAnimation(direction === 'right' ? 'slide-out-right' : 'slide-out-left');
+      
+      setTimeout(() => {
+          setSwipeAnimation(null);
+          setIsStudyCardFlipped(false);
+          
+          const currentSet = sets.find(s => s.id === activeSetId);
+          if (currentSet && viewCardIndex < currentSet.cards.length) {
+             setViewCardIndex(prev => prev + 1);
+          }
+      }, 300); 
+  };
+
+  useEffect(() => {
+      if (currentView !== 'study') return;
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+          if (e.code === 'Space') {
+            e.preventDefault(); 
+            setIsStudyCardFlipped(prev => !prev);
+          } else if (e.code === 'ArrowRight') {
+               const currentSet = sets.find(s => s.id === activeSetId);
+               if (currentSet && viewCardIndex < currentSet.cards.length)
+                    handleStudyNextCard('right');
+          } else if (e.code === 'ArrowLeft') {
+               const currentSet = sets.find(s => s.id === activeSetId);
+               if (currentSet && viewCardIndex < currentSet.cards.length)
+                    handleStudyNextCard('left');
+          }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentView, activeSetId, viewCardIndex, sets]);
 
   // --- Render Functions ---
 
@@ -548,16 +590,60 @@ export function Flashcards() {
                         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{activeSet.title}</h1>
                    </div>
                    
-                   <div className="flex-1 flex flex-col items-center justify-center w-full pb-20">
-                        {activeSet.cards.length > 0 ? (
+                   <div className="flex-1 flex flex-col items-center justify-center w-full pb-20 overflow-hidden">
+                        {viewCardIndex >= activeSet.cards.length ? (
+                            <div className="flex flex-col items-center animate-fade-in text-center p-8 bg-white dark:bg-slate-800 rounded-3xl shadow-lg max-w-lg border border-gray-100 dark:border-slate-700">
+                                <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6">
+                                    <CheckSquare size={40} className="text-green-600 dark:text-green-400" />
+                                </div>
+                                <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Parabéns!</h2>
+                                <p className="text-gray-500 dark:text-gray-400 mb-8 text-lg">Você completou todos os cartões deste conjunto.</p>
+                                <button 
+                                    onClick={() => { setViewCardIndex(0); setIsStudyCardFlipped(false); }}
+                                    className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition mb-3"
+                                >
+                                    Reiniciar Estudo
+                                </button>
+                                <button 
+                                    onClick={() => { setCurrentView('sets'); setActiveSetId(null); }}
+                                    className="w-full py-3 px-6 border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition"
+                                >
+                                    Voltar para Lista
+                                </button>
+                            </div>
+                        ) : activeSet.cards.length > 0 ? (
                            <>
-                            <div className="relative group perspective-1000 w-full max-w-xl">
-                                <Card term={activeSet.cards[viewCardIndex].term} definition={activeSet.cards[viewCardIndex].definition} />
+                            <div 
+                                className={`relative group perspective-1000 w-full max-w-xl ${swipeAnimation ? swipeAnimation : ''}`}
+                                onTouchStart={e => touchStartX.current = e.touches[0].clientX}
+                                onTouchEnd={e => {
+                                    if (touchStartX.current === null) return;
+                                    const diff = e.changedTouches[0].clientX - touchStartX.current;
+                                    if (Math.abs(diff) > 50) { 
+                                         const currentSet = sets.find(s => s.id === activeSetId);
+                                         if (currentSet && viewCardIndex < currentSet.cards.length) {
+                                              handleStudyNextCard(diff > 0 ? 'right' : 'left');
+                                         }
+                                    }
+                                    touchStartX.current = null;
+                                }}
+                            >
+                                <Card 
+                                    term={activeSet.cards[viewCardIndex].term} 
+                                    definition={activeSet.cards[viewCardIndex].definition} 
+                                    isFlipped={isStudyCardFlipped}
+                                    onFlip={() => setIsStudyCardFlipped(!isStudyCardFlipped)}
+                                />
                             </div>
 
                             <div className="flex items-center gap-6 mt-8">
                                 <button 
-                                    onClick={() => setViewCardIndex(prev => Math.max(0, prev - 1))}
+                                    onClick={() => {
+                                        if (viewCardIndex > 0) {
+                                            setViewCardIndex(prev => prev - 1);
+                                            setIsStudyCardFlipped(false);
+                                        }
+                                    }}
                                     disabled={viewCardIndex === 0}
                                     className="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 disabled:opacity-30 transition"
                                 >
@@ -567,12 +653,22 @@ export function Flashcards() {
                                     {viewCardIndex + 1} / {activeSet.cards.length}
                                 </span>
                                 <button 
-                                    onClick={() => setViewCardIndex(prev => Math.min(activeSet.cards.length - 1, prev + 1))}
-                                    disabled={viewCardIndex === activeSet.cards.length - 1}
-                                    className="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 disabled:opacity-30 transition"
+                                    onClick={() => {
+                                         if (viewCardIndex < activeSet.cards.length - 1) {
+                                             setViewCardIndex(prev => prev + 1);
+                                             setIsStudyCardFlipped(false);
+                                         } else if (viewCardIndex === activeSet.cards.length - 1) {
+                                              setViewCardIndex(prev => prev + 1); // Finish
+                                         }
+                                    }}
+                                    className="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 transition"
                                 >
-                                    <ChevronRight size={32} />
+                                   {viewCardIndex === activeSet.cards.length - 1 ? <CheckSquare size={32} className="text-green-600" /> : <ChevronRight size={32} />}
                                 </button>
+                            </div>
+                            
+                            <div className="mt-4 text-sm text-gray-400">
+                                <p>Espaço para virar • Setas ou arrastar para avaliar</p>
                             </div>
                            </>
                         ) : (

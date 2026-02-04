@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
 import { Quiz } from '../components/Quiz';
 import { generateLearnQuestions, checkAnswer, QuizQuestion, QuestionType } from '../services/ai';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, History, Trash2, Save } from 'lucide-react';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+
+interface LearnHistoryItem {
+    id: string;
+    date: string;
+    topic: string;
+    score: number;
+    total: number;
+}
 
 export function Learn() {
     const [topic, setTopic] = useState('');
@@ -14,6 +23,26 @@ export function Learn() {
     const [quizFinished, setQuizFinished] = useState(false);
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [error, setError] = useState('');
+    const [showHistory, setShowHistory] = useState(false);
+
+    const [history, setHistory] = useLocalStorage<LearnHistoryItem[]>('learnHistory', []);
+
+    const handleSaveHistory = () => {
+        const newItem: LearnHistoryItem = {
+            id: crypto.randomUUID(),
+            date: new Date().toISOString(),
+            topic: topic,
+            score: score,
+            total: questions.length
+        };
+        setHistory([newItem, ...history]);
+        alert('Resultado salvo!');
+    };
+
+    const handleDeleteHistoryItem = (id: string) => {
+        setHistory(history.filter(item => item.id !== id));
+    };
+
 
     const handleStartQuiz = async () => {
         if (!topic.trim()) return;
@@ -87,16 +116,24 @@ export function Learn() {
                 <div className="text-xl text-gray-600 dark:text-gray-300">
                     Sua pontuação final: <span className="font-bold text-blue-600 dark:text-blue-400">{score}</span> de {questions.length}
                 </div>
-                <button 
-                    onClick={() => {
-                        setQuizStarted(false);
-                        setTopic('');
-                        setQuestions([]);
-                    }}
-                    className="mt-4 px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition"
-                >
-                    Voltar ao Início
-                </button>
+                <div className="flex gap-4 mt-4">
+                    <button 
+                        onClick={handleSaveHistory}
+                        className="px-6 py-3 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition flex items-center gap-2"
+                    >
+                        <Save size={20} /> Salvar
+                    </button>
+                    <button 
+                        onClick={() => {
+                            setQuizStarted(false);
+                            setTopic('');
+                            setQuestions([]);
+                        }}
+                        className="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition"
+                    >
+                        Voltar ao Início
+                    </button>
+                </div>
             </div>
         );
     }
@@ -150,6 +187,41 @@ export function Learn() {
                      {isLoading ? 'Iniciando...' : 'Começar a Aprender'}
                  </button>
              </div>
+
+             <button 
+                onClick={() => setShowHistory(!showHistory)} 
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
+            >
+                <History size={20} /> {showHistory ? 'Ocultar Histórico' : 'Ver Histórico'}
+             </button>
+
+             {showHistory && (
+                 <div className="w-full bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 mt-4 text-left animate-in slide-in-from-top-4">
+                     <h3 className="font-bold text-gray-800 dark:text-white mb-4">Histórico de Aprendizado</h3>
+                     {history.length === 0 ? (
+                         <p className="text-gray-500 dark:text-gray-400 text-sm">Nenhum histórico salvo.</p>
+                     ) : (
+                         <div className="space-y-3">
+                             {history.map(item => (
+                                 <div key={item.id} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg border border-transparent hover:border-gray-200 dark:hover:border-slate-600 transition-all">
+                                     <div>
+                                         <div className="font-medium text-gray-800 dark:text-gray-200">{item.topic}</div>
+                                         <div className="text-xs text-gray-500">
+                                            {new Date(item.date).toLocaleDateString()} • Score: {item.score}/{item.total}
+                                         </div>
+                                     </div>
+                                     <button 
+                                         onClick={() => handleDeleteHistoryItem(item.id)}
+                                         className="p-2 text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                                     >
+                                         <Trash2 size={16} />
+                                     </button>
+                                 </div>
+                             ))}
+                         </div>
+                     )}
+                 </div>
+             )}
         </div>
     );
 }
