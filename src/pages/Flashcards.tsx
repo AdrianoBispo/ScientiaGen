@@ -163,7 +163,7 @@ export function Flashcards() {
       <div className="space-y-4 mb-8">
         {sets.map(set => (
           <div key={set.id} className="relative bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-               onClick={() => { setActiveSetId(set.id); setCurrentView('study'); }}>
+               onClick={() => { setActiveSetId(set.id); setCurrentView('study'); setViewCardIndex(0); }}>
             <div className="flex items-center gap-4">
               <div className="p-3 bg-gray-100 dark:bg-slate-700 rounded-lg">
                 <Folder className="text-gray-600 dark:text-gray-300" size={24} />
@@ -419,18 +419,9 @@ export function Flashcards() {
                     </button>
                 </div>
 
-                <div className="p-12 flex items-center justify-center min-h-[300px] bg-gray-50 dark:bg-slate-900/50">
-                    <div className="bg-blue-50 dark:bg-slate-800 p-8 rounded-2xl border border-blue-100 dark:border-slate-700 w-full max-w-md text-center aspect-video flex flex-col items-center justify-center relative group">
-                        <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">{card.term}</h3>
-                        <p className="text-gray-600 dark:text-gray-300">{card.definition}</p>
-                        <button 
-                            onClick={() => handleSpeech(`${card.term}. ${card.definition}`)}
-                            className="mt-6 p-3 rounded-full bg-white dark:bg-slate-700 shadow-sm text-gray-500 hover:text-blue-600 dark:text-gray-300 transition"
-                        >
-                            <Volume2 size={24} />
-                        </button>
-                        <span className="absolute bottom-4 right-4 text-xs text-text-gray-400">{viewCardIndex + 1} / {generatedCards.length}</span>
-                    </div>
+                <div className="p-12 flex flex-col items-center justify-center min-h-[300px] bg-gray-50 dark:bg-slate-900/50">
+                    <Card term={card.term} definition={card.definition} />
+                    <span className="mt-4 text-sm text-gray-500 dark:text-gray-400 font-medium">{viewCardIndex + 1} / {generatedCards.length}</span>
                 </div>
 
                 <div className="p-6 border-t border-gray-100 dark:border-slate-700 flex justify-between">
@@ -506,7 +497,7 @@ export function Flashcards() {
                     </div>
                     <div className="p-2">
                         <button className="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition"
-                            onClick={() => { setActiveSetId(set.id); setCurrentView('study'); setShowSetActionsModal(null); }}>
+                            onClick={() => { setActiveSetId(set.id); setCurrentView('study'); setShowSetActionsModal(null); setViewCardIndex(0); }}>
                             <Eye size={20} className="text-blue-500" /> 
                             <span className="font-medium">Exibir</span>
                         </button>
@@ -561,7 +552,27 @@ export function Flashcards() {
                         {activeSet.cards.length > 0 ? (
                            <>
                             <div className="relative group perspective-1000 w-full max-w-xl">
-                                <Card term={activeSet.cards[0].term} definition={activeSet.cards[0].definition} />
+                                <Card term={activeSet.cards[viewCardIndex].term} definition={activeSet.cards[viewCardIndex].definition} />
+                            </div>
+
+                            <div className="flex items-center gap-6 mt-8">
+                                <button 
+                                    onClick={() => setViewCardIndex(prev => Math.max(0, prev - 1))}
+                                    disabled={viewCardIndex === 0}
+                                    className="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 disabled:opacity-30 transition"
+                                >
+                                    <ChevronLeft size={32} />
+                                </button>
+                                <span className="text-gray-500 dark:text-gray-400 font-medium">
+                                    {viewCardIndex + 1} / {activeSet.cards.length}
+                                </span>
+                                <button 
+                                    onClick={() => setViewCardIndex(prev => Math.min(activeSet.cards.length - 1, prev + 1))}
+                                    disabled={viewCardIndex === activeSet.cards.length - 1}
+                                    className="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-500 disabled:opacity-30 transition"
+                                >
+                                    <ChevronRight size={32} />
+                                </button>
                             </div>
                            </>
                         ) : (

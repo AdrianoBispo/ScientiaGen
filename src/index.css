@@ -29,7 +29,7 @@
 
 @layer components {
   .flashcard {
-    @apply w-80 h-56 cursor-pointer;
+    @apply w-full max-w-2xl aspect-video cursor-pointer bg-transparent;
     perspective: 1000px;
   }
   
