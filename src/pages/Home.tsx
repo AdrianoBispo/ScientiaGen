@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Brain, GalleryVerticalEnd, GraduationCap } from 'lucide-react';
+import { Brain, GalleryVerticalEnd, GraduationCap, Puzzle, Shuffle } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Navigation } from 'swiper/modules';
 import 'swiper/css';
@@ -10,7 +10,7 @@ export function Home() {
     const features = [
         {
             to: "/learn",
-            title: "Modo Aprender",
+            title: "Aprender",
             desc: "Teste seus conhecimentos com quizzes gerados por IA.",
             icon: <Brain size={40} />
         },
@@ -19,6 +19,18 @@ export function Home() {
             title: "Cartões de Estudo",
             desc: "Memorize conceitos com flashcards interativos.",
             icon: <GalleryVerticalEnd size={40} />
+        },
+        {
+            to: "/match",
+            title: "Combinar",
+            desc: "Melhore sua memória combinando pares relacionados.",
+            icon: <Puzzle size={40} />
+        },
+        {
+            to: "/mixed",
+            title: "Misto",
+            desc: "Combine diferentes tipos de exercícios para um estudo diversificado.",
+            icon: <Shuffle size={40} />
         },
         {
             to: "/guided",
