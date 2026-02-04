@@ -147,8 +147,8 @@ export function Header() {
                                         : 'border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700'
                                 }`}
                              >
-                                {theme === 'dark' ? <Moon size={20} className="fill-current" /> : <Moon size={20} />} 
-                                <span>{theme === 'dark' ? 'Modo escuro ativado' : 'Modo escuro'}</span>
+                                {theme === 'dark' ? <Sun size={20} className="fill-current" /> : <Moon size={20} />} 
+                                <span>{theme === 'dark' ? 'Modo claro' : 'Modo escuro'}</span>
                              </button>
 
                             <button 
