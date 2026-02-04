@@ -141,7 +141,7 @@ export function Match() {
 
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 w-full max-w-lg">
                     <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-gray-800 dark:text-white">
-                        <Settings className="text-purple-600 dark:text-purple-400" /> Configuração do Jogo
+                        <Settings className="text-blue-600 dark:text-blue-400" /> Configuração do Jogo
                     </h2>
                     
                     <div className="space-y-4 text-left">
@@ -150,7 +150,7 @@ export function Match() {
                             <input 
                                 value={topic}
                                 onChange={(e) => setTopic(e.target.value)}
-                                className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                                className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                 placeholder="Ex: Revolução Francesa, Tabela Periódica..."
                             />
                         </div>
@@ -161,7 +161,7 @@ export function Match() {
                                 <select 
                                     value={pairCount}
                                     onChange={(e) => setPairCount(Number(e.target.value))}
-                                    className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                                    className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                 >
                                     <option value={4}>4 Pares</option>
                                     <option value={6}>6 Pares</option>
@@ -174,7 +174,7 @@ export function Match() {
                                 <select 
                                     value={timeLimit}
                                     onChange={(e) => setTimeLimit(Number(e.target.value))}
-                                    className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                                    className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                                 >
                                     <option value={60}>1 Minuto</option>
                                     <option value={120}>2 Minutos</option>
@@ -189,7 +189,7 @@ export function Match() {
                         <button 
                             onClick={startGame}
                             disabled={!topic}
-                            className="w-full py-3 mt-4 bg-purple-600 dark:bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-700 dark:hover:bg-purple-600 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                            className="w-full py-3 mt-4 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                             <Play size={20} fill="currentColor" /> Iniciar Jogo
                         </button>
@@ -202,7 +202,7 @@ export function Match() {
     if (gameState === 'loading') {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh]">
-                <RefreshCw className="animate-spin text-purple-600 dark:text-purple-400 mb-4" size={40} />
+                <RefreshCw className="animate-spin text-blue-600 dark:text-blue-400 mb-4" size={40} />
                 <p className="text-gray-600 dark:text-gray-300">Gerando o jogo...</p>
             </div>
         );
@@ -243,14 +243,14 @@ export function Match() {
             {/* Game Header */}
             <div className="flex justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 mb-6">
                 <h2 className="font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-purple-500"></span>
+                    <span className="w-3 h-3 rounded-full bg-blue-500"></span>
                     {topic}
                 </h2>
                 <div className={`flex items-center gap-2 font-mono text-xl font-bold ${timeLeft < 30 ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
                     <Timer size={24} />
                     {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
                 </div>
-                <div className="font-bold text-purple-600 dark:text-purple-400">
+                <div className="font-bold text-blue-600 dark:text-blue-400">
                     Matches: {matches}/{gameItems.terms.length}
                 </div>
             </div>

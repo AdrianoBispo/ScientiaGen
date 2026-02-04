@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { 
-    Trophy, 
+    BarChart, 
     Settings, 
     Moon, 
     Sun,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react';
 
 export function Header() {
+    const navigate = useNavigate();
     const { currentUser, loginWithGoogle, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -84,7 +86,14 @@ export function Header() {
 
                                 {/* Menu Items Group 1 */}
                                 <div className="py-2">
-                                    <MenuItem icon={<Trophy size={20} />} label="Conquistas" />
+                                    <MenuItem 
+                                        icon={<BarChart size={20} />} 
+                                        label="Estatísticas" 
+                                        onClick={() => {
+                                            navigate('/statistics');
+                                            setIsMenuOpen(false);
+                                        }}
+                                    />
                                     <MenuItem icon={<Settings size={20} />} label="Configurações" />
                                     <MenuItem 
                                         icon={theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />} 

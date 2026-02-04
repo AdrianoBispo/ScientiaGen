@@ -7,6 +7,7 @@ import { Match } from './pages/Match';
 import { Mixed } from './pages/Mixed';
 import { Guided } from './pages/Guided';
 import { TestMode } from './pages/TestMode';
+import { Statistics } from './pages/Statistics';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="mixed" element={<Mixed />} />
           <Route path="guided" element={<Guided />} />
           <Route path="test" element={<TestMode />} />
+          <Route path="statistics" element={<Statistics />} />
         </Route>
       </Routes>
     </BrowserRouter>
