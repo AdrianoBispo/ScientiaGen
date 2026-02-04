@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Library, Brain, GalleryVerticalEnd, Puzzle, Shuffle, GraduationCap, LogIn, LogOut } from 'lucide-react';
+import { Home, Brain, GalleryVerticalEnd, Puzzle, Shuffle, GraduationCap, LogIn, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Sidebar() {
@@ -21,7 +21,6 @@ export function Sidebar() {
             <nav className="flex flex-col gap-2 p-3 mt-4 flex-1">
                 <NavItem to="/" icon={<Home size={24} />} label="Início" isHovered={isHovered} />
                 <div className="border-t border-gray-100 my-2"></div>
-                <NavItem to="/library" icon={<Library size={24} />} label="Biblioteca" isHovered={isHovered} />
                 <NavItem to="/learn" icon={<Brain size={24} />} label="Aprender" isHovered={isHovered} />
                 <NavItem to="/flashcards" icon={<GalleryVerticalEnd size={24} />} label="Cartões" isHovered={isHovered} />
                 <NavItem to="/match" icon={<Puzzle size={24} />} label="Combinar" isHovered={isHovered} />

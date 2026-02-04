@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { MainLayout } from './layouts/MainLayout';
 import { Home } from './pages/Home';
-import { Library } from './pages/Library';
 import { Learn } from './pages/Learn';
 import { Flashcards } from './pages/Flashcards';
 import { Match } from './pages/Match';
@@ -14,7 +13,6 @@ function App() {
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Home />} />
-          <Route path="library" element={<Library />} />
           <Route path="learn" element={<Learn />} />
           <Route path="flashcards" element={<Flashcards />} />
           <Route path="match" element={<Match />} />
