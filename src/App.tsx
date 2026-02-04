@@ -6,6 +6,7 @@ import { Flashcards } from './pages/Flashcards';
 import { Match } from './pages/Match';
 import { Mixed } from './pages/Mixed';
 import { Guided } from './pages/Guided';
+import { TestMode } from './pages/TestMode';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="match" element={<Match />} />
           <Route path="mixed" element={<Mixed />} />
           <Route path="guided" element={<Guided />} />
+          <Route path="test" element={<TestMode />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -99,12 +99,58 @@ export async function generateMixedQuiz(topic: string, count: number = 5): Promi
 
       if (responseData && responseData.questions && Array.isArray(responseData.questions)) {
           return responseData.questions;
+      } else {
+        return [];
       }
-      return [];
   } catch (error) {
-      console.error("Error generating mixed quiz:", error);
-      throw error;
+    console.error("Error generating mixed quiz:", error);
+    throw error;
   }
+}
+
+export interface TestQuestion {
+    id: string;
+    question: string;
+    options: string[];
+    correctAnswer: string;
+    explanation?: string;
+}
+
+export async function generateTestQuestions(topic: string, count: number = 5): Promise<TestQuestion[]> {
+    try {
+        const prompt = `Gere um teste de múltipla escolha com ${count} perguntas sobre "${topic}". 
+        Para cada pergunta, forneça:
+        - "question": o texto da pergunta
+        - "options": uma lista de 4 opções de resposta (strings)
+        - "correctAnswer": a string exata da resposta correta (deve estar presente em "options")
+        - "explanation": uma breve explicação de por que a resposta está correta.
+        
+        Responda APENAS com um objeto JSON válido contendo uma chave "questions" que é uma lista de objetos.`;
+
+        const result = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+            },
+        });
+
+        const text = result.text;
+        if (!text) throw new Error("No response from AI");
+
+        const responseData = JSON.parse(text);
+
+        if (responseData && responseData.questions && Array.isArray(responseData.questions)) {
+            return responseData.questions.map((q: any, index: number) => ({
+                ...q,
+                id: `q-${Date.now()}-${index}`
+            }));
+        }
+        return [];
+    } catch (error) {
+        console.error("Error generating test questions:", error);
+        throw error;
+    }
 }
 
 export async function checkAnswer(question: string, userAnswer: string, correctAnswer: string, type: QuestionType): Promise<{ isCorrect: boolean; feedback: string }> {

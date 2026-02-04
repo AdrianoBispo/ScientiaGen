@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Brain, GalleryVerticalEnd, Puzzle, Shuffle, GraduationCap } from 'lucide-react';
+import { Home, Brain, GalleryVerticalEnd, Puzzle, Shuffle, GraduationCap, ClipboardList } from 'lucide-react';
 
 export function Sidebar() {
     const [isHovered, setIsHovered] = useState(false);
@@ -24,6 +24,7 @@ export function Sidebar() {
                 <NavItem to="/match" icon={<Puzzle size={24} />} label="Combinar" isHovered={isHovered} />
                 <NavItem to="/mixed" icon={<Shuffle size={24} />} label="Misto" isHovered={isHovered} />
                 <NavItem to="/guided" icon={<GraduationCap size={24} />} label="Aprendizagem Guiada" isHovered={isHovered} />
+                <NavItem to="/test" icon={<ClipboardList size={24} />} label="Modo Teste" isHovered={isHovered} />
             </nav>
         </aside>
     );
