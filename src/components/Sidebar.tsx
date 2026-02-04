@@ -9,7 +9,7 @@ export function Sidebar() {
         <aside 
             id="sidebar" 
             className={`
-                fixed top-0 left-0 z-30 h-screen flex flex-col bg-white border-r border-gray-200 
+                fixed top-0 left-0 z-30 h-screen flex flex-col bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700
                 transition-all duration-300 ease-in-out overflow-x-hidden
                 ${isHovered ? 'w-60 shadow-xl' : 'w-20'}
             `}
@@ -18,7 +18,7 @@ export function Sidebar() {
         >
             <nav className="flex flex-col gap-2 p-3 mt-4 flex-1">
                 <NavItem to="/" icon={<Home size={24} />} label="Início" isHovered={isHovered} />
-                <div className="border-t border-gray-100 my-2"></div>
+                <div className="border-t border-gray-100 dark:border-slate-700 my-2"></div>
                 <NavItem to="/learn" icon={<Brain size={24} />} label="Aprender" isHovered={isHovered} />
                 <NavItem to="/flashcards" icon={<GalleryVerticalEnd size={24} />} label="Cartões" isHovered={isHovered} />
                 <NavItem to="/match" icon={<Puzzle size={24} />} label="Combinar" isHovered={isHovered} />
@@ -35,7 +35,7 @@ function NavItem({ icon, label, isHovered, to }: { icon: React.ReactNode, label:
             to={to}
             className={({ isActive }) => `
                 flex items-center gap-4 p-3 rounded-lg transition-colors group
-                ${isActive ? 'bg-blue-50 text-blue-600' : 'text-gray-700 hover:bg-gray-100 hover:text-blue-600'}
+                ${isActive ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400'}
             `}
         >
             <span className="min-w-6 flex justify-center">{icon}</span>

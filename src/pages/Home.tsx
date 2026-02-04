@@ -45,8 +45,8 @@ export function Home() {
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-8 overflow-hidden">
-            <h1 className="text-4xl font-bold text-gray-800">Boas-vindas ao ScientiaGen</h1>
-            <p className="text-xl text-gray-600 max-w-2xl">
+            <h1 className="text-4xl font-bold text-gray-800 dark:text-white">Boas-vindas ao ScientiaGen</h1>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl">
                 Sua plataforma de estudos inteligente, potencializada pela API Gemini. 
                 Crie materiais de estudo interativos, desde flashcards e quizzes a soluções guiadas.
             </p>
@@ -94,27 +94,27 @@ export function Home() {
 
 function FeatureCard({ title, desc, icon, to }: { title: string, desc: string, icon: React.ReactNode, to: string }) {
     return (
-        <NavLink to={to} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow flex flex-col items-center text-center gap-4 group">
-            <span className="mb-2 text-blue-600">{icon}</span>
-            <h3 className="text-xl font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">{title}</h3>
-            <p className="text-gray-600">{desc}</p>
+        <NavLink to={to} className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 hover:shadow-md transition-shadow flex flex-col items-center text-center gap-4 group">
+            <span className="mb-2 text-blue-600 dark:text-blue-400">{icon}</span>
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{title}</h3>
+            <p className="text-gray-600 dark:text-gray-400">{desc}</p>
         </NavLink>
     );
 }
 
 function GeneralStatistics() {
     return (
-        <div className="bg-white p-32 rounded-xl shadow-sm border border-gray-100 min-h-[500px]">
-            <h1 className="text-2xl font-bold text-gray-800 mb-6">Estatísticas Gerais</h1>
-            <div className="flex gap-4 border-b border-gray-200 mb-4">
-                <button className="px-4 py-2 text-blue-600 border-b-2 border-blue-600 font-medium">Histórico</button>
-                <button className="px-4 py-2 text-gray-600 hover:text-gray-800">Soluções Salvas</button>
-                <button className="px-4 py-2 text-gray-600 hover:text-gray-800">Meus Cartões</button>
-                <button className="px-4 py-2 text-gray-600 hover:text-gray-800">Exercícios Salvos</button>
-                <button className="px-4 py-2 text-gray-600 hover:text-gray-800">Relatórios</button>
+        <div className="bg-white dark:bg-slate-800 p-32 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 min-h-[500px]">
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">Estatísticas Gerais</h1>
+            <div className="flex gap-4 border-b border-gray-200 dark:border-slate-700 mb-4">
+                <button className="px-4 py-2 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 font-medium">Histórico</button>
+                <button className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">Soluções Salvas</button>
+                <button className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">Meus Cartões</button>
+                <button className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">Exercícios Salvos</button>
+                <button className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">Relatórios</button>
             </div>
             
-            <div className="p-10 text-center text-gray-500 bg-gray-50 rounded-lg">
+            <div className="p-10 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-slate-700 rounded-lg">
                 <p>Nenhum item encontrado na biblioteca.</p>
             </div>
         </div>

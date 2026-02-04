@@ -42,18 +42,18 @@ export function Quiz({
              {/* Learn Header */}
              <div className="flex justify-between w-full mb-5 text-lg font-medium">
                  {/* Timer placeholder */}
-                 <div className="text-gray-700"></div> 
-                 <div className="text-gray-700">{currentStep} / {totalSteps}</div>
+                 <div className="text-gray-700 dark:text-gray-300"></div> 
+                 <div className="text-gray-700 dark:text-gray-300">{currentStep} / {totalSteps}</div>
              </div>
 
              {/* Question Area */}
-             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-                 <p className="text-xl text-gray-800 mb-4 leading-relaxed">
+             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700">
+                 <p className="text-xl text-gray-800 dark:text-gray-100 mb-4 leading-relaxed">
                      {question}
                  </p>
                  
                  <textarea 
-                    className="w-full min-h-[100px] p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y text-base"
+                    className="w-full min-h-[100px] p-4 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-y text-base"
                     placeholder="Digite sua resposta aqui..."
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
@@ -63,9 +63,9 @@ export function Quiz({
 
              {/* Feedback Area */}
              {feedback && (
-                <div className={`p-4 rounded-lg border ${feedback.isCorrect ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+                <div className={`p-4 rounded-lg border ${feedback.isCorrect ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'}`}>
                     <p className="font-bold mb-1">{feedback.isCorrect ? 'Correto!' : 'Incorreto'}</p>
-                    <p className="text-gray-700">{feedback.text}</p>
+                    <p className="text-gray-700 dark:text-gray-300">{feedback.text}</p>
                 </div>
              )}
 
@@ -75,7 +75,7 @@ export function Quiz({
                     <>
                          <button 
                             onClick={onSkip}
-                            className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                            className="px-4 py-2 text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg font-medium transition-colors"
                             disabled={isEvaluating}
                          >
                              Pular

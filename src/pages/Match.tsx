@@ -49,354 +49,254 @@ export function Match() {
         }
 
         return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
+             if (timerRef.current) clearInterval(timerRef.current);
         };
     }, [gameState]);
 
     const startGame = async () => {
-        if (!topic.trim()) {
-            setErrorMsg('Por favor, insira um tópico.');
-            return;
-        }
-
+        if (!topic) return;
         setGameState('loading');
         setErrorMsg('');
         
         try {
             const cards = await generateFlashcards(topic, pairCount);
-            
-            if (cards.length < pairCount) {
-                setErrorMsg(`Não foi possível gerar ${pairCount} pares. Tentando com ${cards.length}.`);
+            if (cards.length < 3) {
+                setErrorMsg("Não foi possível gerar pares suficientes. Tente outro tópico.");
+                setGameState('setup');
+                return;
             }
-
-            prepareGameBoard(cards);
-            setTimeLeft(timeLimit);
-            setMatches(0);
-            setGameState('playing');
+            prepareGame(cards);
         } catch (error) {
             console.error(error);
-            setErrorMsg('Erro ao gerar o jogo. Tente novamente.');
+            setErrorMsg("Erro ao gerar o jogo. Tente novamente.");
             setGameState('setup');
         }
     };
 
-    const prepareGameBoard = (cards: FlashcardData[]) => {
-        const newTerms: MatchCard[] = [];
-        const newDefinitions: MatchCard[] = [];
+    const prepareGame = (cards: FlashcardData[]) => {
+        const terms: MatchCard[] = cards.map((c, i) => ({
+            id: `term-${i}`,
+            text: c.term,
+            type: 'term',
+            matched: false,
+            originalPairId: `pair-${i}`
+        })).sort(() => Math.random() - 0.5);
 
-        cards.forEach((card, index) => {
-            const pairId = `pair-${index}`;
-            newTerms.push({
-                id: `term-${index}`,
-                text: card.term,
-                type: 'term',
-                matched: false,
-                originalPairId: pairId
-            });
-            newDefinitions.push({
-                id: `def-${index}`,
-                text: card.definition,
-                type: 'definition',
-                matched: false,
-                originalPairId: pairId
-            });
-        });
+        const definitions: MatchCard[] = cards.map((c, i) => ({
+            id: `def-${i}`,
+            text: c.definition,
+            type: 'definition',
+            matched: false,
+            originalPairId: `pair-${i}`
+        })).sort(() => Math.random() - 0.5);
 
-        setGameItems({
-            terms: shuffleArray(newTerms),
-            definitions: shuffleArray(newDefinitions)
-        });
-    };
-
-    const shuffleArray = <T,>(array: T[]): T[] => {
-        const newArray = [...array];
-        for (let i = newArray.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-        }
-        return newArray;
-    };
-
-    const handleDragStart = (e: React.DragEvent, item: MatchCard) => {
-        if (item.matched) return;
-        setDraggedItem(item);
-        e.dataTransfer.setData('text/plain', item.originalPairId);
-    };
-
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault(); // Necessary to allow dropping
-    };
-
-    const handleDrop = (e: React.DragEvent, targetItem: MatchCard) => {
-        e.preventDefault();
-        if (!draggedItem || targetItem.matched || draggedItem.type === targetItem.type) return;
-
-        const draggedPairId = draggedItem.originalPairId;
-        
-        if (draggedPairId === targetItem.originalPairId) {
-            // Match found!
-            handleMatch(draggedItem, targetItem);
-        } else {
-            // Incorrect match visual feedback
-            const targetElement = e.currentTarget as HTMLElement;
-            targetElement.classList.add('animate-shake');
-            setTimeout(() => targetElement.classList.remove('animate-shake'), 500);
-        }
-        setDraggedItem(null);
-    };
-
-    const handleMatch = (item1: MatchCard, item2: MatchCard) => {
-        setGameItems(prev => ({
-            terms: prev.terms.map(item => 
-                (item.id === item1.id || item.id === item2.id) ? { ...item, matched: true } : item
-            ),
-            definitions: prev.definitions.map(item => 
-                (item.id === item1.id || item.id === item2.id) ? { ...item, matched: true } : item
-            )
-        }));
-        
-        setMatches(prev => {
-            const newMatches = prev + 1;
-            if (newMatches >= gameItems.terms.length) {
-                // Game Completed successfully
-                setTimeout(finishGame, 500);
-            }
-            return newMatches;
-        });
-    };
-
-    const finishGame = () => {
-        if (timerRef.current) clearInterval(timerRef.current);
-        setGameState('finished');
-    };
-
-    const resetGame = () => {
-        setGameState('setup');
-        setTopic('');
-        setMatches(0);
-        setErrorMsg('');
-    };
-
-    const replayGame = () => {
-        // Shuffle existing items again and restart
-        const currentTerms = gameItems.terms.map(t => ({...t, matched: false}));
-        const currentDefs = gameItems.definitions.map(d => ({...d, matched: false}));
-        
-        setGameItems({
-            terms: shuffleArray(currentTerms),
-            definitions: shuffleArray(currentDefs)
-        });
+        setGameItems({ terms, definitions });
         setTimeLeft(timeLimit);
         setMatches(0);
         setGameState('playing');
     };
 
-    // -- Render Helpers --
+    const finishGame = () => {
+        setGameState('finished');
+        if (timerRef.current) clearInterval(timerRef.current);
+    };
 
-    const renderSetup = () => (
-        <div className="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <Settings className="w-6 h-6 text-indigo-600" />
-                Configuração do Jogo
-            </h2>
+    const handleDragStart = (item: MatchCard) => {
+        setDraggedItem(item);
+    };
+
+    const handleDrop = (targetItem: MatchCard) => {
+        if (!draggedItem) return;
+        
+        // Cannot match same type (term-term or def-def)
+        if (draggedItem.type === targetItem.type) return;
+
+        // Check Match
+        if (draggedItem.originalPairId === targetItem.originalPairId) {
+            // Success
+            const newTerms = gameItems.terms.map(item => 
+                (item.id === draggedItem.id || item.id === targetItem.id) ? { ...item, matched: true } : item
+            );
+            const newDefs = gameItems.definitions.map(item => 
+                (item.id === draggedItem.id || item.id === targetItem.id) ? { ...item, matched: true } : item
+            );
             
-            <div className="space-y-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tópico de Estudo</label>
-                    <input 
-                        type="text" 
-                        value={topic}
-                        onChange={(e) => setTopic(e.target.value)}
-                        placeholder="Ex: Revolução Francesa, Tabela Periódica..."
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
-                    />
-                </div>
+            setGameItems({ terms: newTerms, definitions: newDefs });
+            setMatches(m => {
+                const newMatches = m + 1;
+                if (newMatches >= gameItems.terms.length) finishGame();
+                return newMatches;
+            });
+        }
+        
+        setDraggedItem(null);
+    };
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Pares de Cartões</label>
-                        <select 
-                            value={pairCount}
-                            onChange={(e) => setPairCount(Number(e.target.value))}
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none"
+    // Render Setup Screen
+    if (gameState === 'setup') {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center w-full max-w-2xl mx-auto">
+                <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Modo Combinar</h1>
+                <p className="text-gray-600 dark:text-gray-300 mb-8">Arraste os termos da esquerda para as definições corretas na direita.</p>
+
+                <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 w-full max-w-lg">
+                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-gray-800 dark:text-white">
+                        <Settings className="text-purple-600 dark:text-purple-400" /> Configuração do Jogo
+                    </h2>
+                    
+                    <div className="space-y-4 text-left">
+                        <div>
+                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Tópico de Estudo</label>
+                            <input 
+                                value={topic}
+                                onChange={(e) => setTopic(e.target.value)}
+                                className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                                placeholder="Ex: Revolução Francesa, Tabela Periódica..."
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Pares de Cartões</label>
+                                <select 
+                                    value={pairCount}
+                                    onChange={(e) => setPairCount(Number(e.target.value))}
+                                    className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                                >
+                                    <option value={4}>4 Pares</option>
+                                    <option value={6}>6 Pares</option>
+                                    <option value={8}>8 Pares</option>
+                                    <option value={10}>10 Pares</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Tempo Limite</label>
+                                <select 
+                                    value={timeLimit}
+                                    onChange={(e) => setTimeLimit(Number(e.target.value))}
+                                    className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none"
+                                >
+                                    <option value={60}>1 Minuto</option>
+                                    <option value={120}>2 Minutos</option>
+                                    <option value={180}>3 Minutos</option>
+                                    <option value={300}>5 Minutos</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {errorMsg && <p className="text-red-500 text-sm">{errorMsg}</p>}
+
+                        <button 
+                            onClick={startGame}
+                            disabled={!topic}
+                            className="w-full py-3 mt-4 bg-purple-600 dark:bg-purple-500 text-white rounded-xl font-medium hover:bg-purple-700 dark:hover:bg-purple-600 transition flex items-center justify-center gap-2 disabled:opacity-50"
                         >
-                            <option value={4}>4 Pares</option>
-                            <option value={6}>6 Pares</option>
-                            <option value={8}>8 Pares</option>
-                            <option value={10}>10 Pares</option>
-                        </select>
+                            <Play size={20} fill="currentColor" /> Iniciar Jogo
+                        </button>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Tempo Limite</label>
-                        <select 
-                            value={timeLimit}
-                            onChange={(e) => setTimeLimit(Number(e.target.value))}
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 outline-none"
-                        >
-                            <option value={60}>1 Minuto</option>
-                            <option value={120}>2 Minutos</option>
-                            <option value={180}>3 Minutos</option>
-                            <option value={300}>5 Minutos</option>
-                        </select>
-                    </div>
-                </div>
-
-                {errorMsg && (
-                    <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-                        {errorMsg}
-                    </div>
-                )}
-
-                <button 
-                    onClick={startGame}
-                    className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
-                >
-                    <Play className="w-5 h-5" />
-                    Iniciar Jogo
-                </button>
-            </div>
-        </div>
-    );
-
-    const renderLoading = () => (
-        <div className="flex flex-col items-center justify-center min-h-[400px]">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-600 mb-4"></div>
-            <p className="text-gray-600 text-lg">Gerando pares de combinação com IA...</p>
-        </div>
-    );
-
-    const renderPlaying = () => (
-        <div className="flex flex-col h-full">
-            {/* Header: Timer & Score */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
-                <div className="flex items-center gap-2 text-xl font-bold text-gray-800">
-                    <Timer className={`w-6 h-6 ${timeLeft < 30 ? 'text-red-500' : 'text-indigo-600'}`} />
-                    <span className={timeLeft < 30 ? 'text-red-500' : ''}>
-                        {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-                    </span>
-                </div>
-                <div className="text-gray-600 font-medium">
-                    Combinados: <span className="text-green-600 font-bold">{matches}</span> / {gameItems.terms.length}
                 </div>
             </div>
+        );
+    }
+    
+    if (gameState === 'loading') {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[50vh]">
+                <RefreshCw className="animate-spin text-purple-600 dark:text-purple-400 mb-4" size={40} />
+                <p className="text-gray-600 dark:text-gray-300">Gerando o jogo...</p>
+            </div>
+        );
+    }
 
-            {/* Game Board */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1">
+    if (gameState === 'finished') {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in zoom-in duration-300">
+                <div className="mb-6 flex flex-col items-center">
+                   {matches === gameItems.terms.length ? (
+                       <CheckCircle size={80} className="text-green-500 mb-4" />
+                   ) : (
+                       <XCircle size={80} className="text-red-500 mb-4" />
+                   )}
+                   <h2 className="text-3xl font-bold text-gray-800 dark:text-white">
+                       {matches === gameItems.terms.length ? "Parabéns!" : "Tempo Esgotado!"}
+                   </h2>
+                </div>
+
+                <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 w-full max-w-sm text-center mb-8">
+                    <p className="text-gray-500 dark:text-gray-400 mb-1">Pontuação Final</p>
+                    <p className="text-4xl font-bold text-gray-800 dark:text-white mb-6">{matches} / {gameItems.terms.length}</p>
+                    
+                    <button 
+                        onClick={() => setGameState('setup')}
+                        className="w-full py-3 bg-gray-800 dark:bg-slate-700 text-white rounded-xl font-medium hover:bg-gray-900 dark:hover:bg-slate-600 transition"
+                    >
+                        Jogar Novamente
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // Render Game Board
+    return (
+        <div className="flex flex-col h-[calc(100vh-100px)]">
+            {/* Game Header */}
+            <div className="flex justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 mb-6">
+                <h2 className="font-bold text-gray-700 dark:text-white flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-purple-500"></span>
+                    {topic}
+                </h2>
+                <div className={`flex items-center gap-2 font-mono text-xl font-bold ${timeLeft < 30 ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
+                    <Timer size={24} />
+                    {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                </div>
+                <div className="font-bold text-purple-600 dark:text-purple-400">
+                    Matches: {matches}/{gameItems.terms.length}
+                </div>
+            </div>
+
+            {/* Game Area */}
+            <div className="flex-1 flex gap-8 min-h-0">
                 {/* Terms Column */}
-                <div className="space-y-3">
-                    <h3 className="text-center text-gray-500 font-medium mb-2">Termos</h3>
-                    {gameItems.terms.map((item) => (
+                <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-2">
+                    {gameItems.terms.map(item => (
                         <div
                             key={item.id}
                             draggable={!item.matched}
-                            onDragStart={(e) => handleDragStart(e, item)}
-                            className={`p-4 rounded-lg shadow-sm border-2 transition-all cursor-grab active:cursor-grabbing
+                            onDragStart={() => handleDragStart(item)}
+                            className={`
+                                p-4 rounded-xl shadow-sm border-2 transition-all cursor-grab active:cursor-grabbing text-sm
                                 ${item.matched 
-                                    ? 'bg-gray-100 border-gray-200 text-gray-400 opacity-60' 
-                                    : 'bg-white border-indigo-100 hover:border-indigo-300 hover:shadow-md'
+                                    ? 'opacity-0 pointer-events-none' 
+                                    : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md'
                                 }
                             `}
                         >
-                            {item.matched ? <span className="line-through decoration-2">{item.text}</span> : item.text}
+                            <span className="font-medium text-gray-800 dark:text-gray-200">{item.text}</span>
                         </div>
                     ))}
                 </div>
 
                 {/* Definitions Column */}
-                <div className="space-y-3">
-                    <h3 className="text-center text-gray-500 font-medium mb-2">Definições</h3>
-                    {gameItems.definitions.map((item) => (
+                <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-2">
+                     {gameItems.definitions.map(item => (
                         <div
                             key={item.id}
-                            onDragOver={handleDragOver}
-                            onDrop={(e) => handleDrop(e, item)}
-                            className={`p-4 rounded-lg shadow-sm border-2 transition-all min-h-[80px] flex items-center
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={() => handleDrop(item)}
+                            className={`
+                                p-4 rounded-xl shadow-sm border-2 transition-all text-sm flex items-center min-h-[60px]
                                 ${item.matched 
-                                    ? 'bg-gray-100 border-gray-200 text-gray-400 opacity-60' 
-                                    : 'bg-white border-dashed border-gray-300 hover:bg-gray-50'
+                                    ? 'opacity-0 pointer-events-none' 
+                                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800 text-blue-900 dark:text-blue-100 border-dashed'
                                 }
                             `}
                         >
-                            {item.matched ? <span className="line-through decoration-2">{item.text}</span> : <span className="text-sm">{item.text}</span>}
+                            {item.matched ? null : item.text}
                         </div>
                     ))}
                 </div>
             </div>
         </div>
     );
-
-    const renderFinished = () => {
-        const isWin = matches === gameItems.terms.length;
-        
-        return (
-            <div className="max-w-xl mx-auto bg-white p-8 rounded-xl shadow-lg border border-gray-100 text-center">
-                <div className="mb-6 flex justify-center">
-                    {isWin ? (
-                        <div className="bg-green-100 p-4 rounded-full">
-                            <CheckCircle className="w-16 h-16 text-green-600" />
-                        </div>
-                    ) : (
-                        <div className="bg-orange-100 p-4 rounded-full">
-                            <XCircle className="w-16 h-16 text-orange-600" />
-                        </div>
-                    )}
-                </div>
-                
-                <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                    {isWin ? 'Parabéns!' : 'Tempo Esgotado!'}
-                </h2>
-                <p className="text-gray-600 mb-8">
-                    {isWin 
-                        ? `Você combinou todos os ${pairCount} pares em ${timeLimit - timeLeft} segundos.` 
-                        : `Você conseguiu combinar ${matches} de ${pairCount} pares.`
-                    }
-                </p>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <button 
-                        onClick={replayGame}
-                        className="py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium shadow transition-colors flex items-center justify-center gap-2"
-                    >
-                        <RefreshCw className="w-5 h-5" />
-                        Jogar Novamente
-                    </button>
-                    <button 
-                        onClick={resetGame}
-                        className="py-3 px-6 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium transition-colors"
-                    >
-                        Novo Tópico
-                    </button>
-                </div>
-            </div>
-        );
-    };
-
-    return (
-        <div className="container mx-auto max-w-5xl">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-800">Modo Combinar</h1>
-                <p className="text-gray-600 mt-2">Arraste os termos da esquerda para as definições corretas na direita.</p>
-            </div>
-
-            {gameState === 'setup' && renderSetup()}
-            {gameState === 'loading' && renderLoading()}
-            {gameState === 'playing' && renderPlaying()}
-            {gameState === 'finished' && renderFinished()}
-
-            <style>{`
-                @keyframes shake {
-                    0%, 100% { transform: translateX(0); }
-                    25% { transform: translateX(-5px); }
-                    75% { transform: translateX(5px); }
-                }
-                .animate-shake {
-                    animation: shake 0.3s ease-in-out;
-                    border-color: #ef4444 !important; /* Red border on error */
-                    background-color: #fef2f2 !important;
-                }
-            `}</style>
-        </div>
-    );
 }
-
-export default Match;

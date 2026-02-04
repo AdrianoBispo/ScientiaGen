@@ -130,14 +130,14 @@ export function Guided() {
 
     return (
         <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-10">
-            <h1 className="text-2xl font-bold text-gray-800">Aprendizagem Guiada</h1>
-            <p className="text-gray-600">Envie um problema ou dúvida e receba uma explicação passo a passo.</p>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Aprendizagem Guiada</h1>
+            <p className="text-gray-600 dark:text-gray-300">Envie um problema ou dúvida e receba uma explicação passo a passo.</p>
             
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
                  <div className="mb-4">
-                     <label className="block text-gray-700 font-medium mb-2">Qual seu problema de estudo?</label>
+                     <label className="block text-gray-700 dark:text-gray-300 font-medium mb-2">Qual seu problema de estudo?</label>
                      <textarea 
-                        className="w-full h-32 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                        className="w-full h-32 p-4 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                         placeholder="Cole uma questão, descreva um tópico ou envie uma imagem..."
                         value={problemText}
                         onChange={(e) => setProblemText(e.target.value)}
@@ -147,11 +147,11 @@ export function Guided() {
 
                  {/* File Attachment Preview */}
                  {attachedFile && (
-                     <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
-                         <span className="text-sm text-blue-800 font-medium truncate flex-1">
+                     <div className="mb-4 flex items-center justify-between bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-100 dark:border-blue-800">
+                         <span className="text-sm text-blue-800 dark:text-blue-200 font-medium truncate flex-1">
                              📎 {attachedFile.name}
                          </span>
-                         <button onClick={removeFile} className="text-blue-500 hover:text-blue-700 p-1">
+                         <button onClick={removeFile} className="text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-200 p-1">
                              <X size={18} />
                          </button>
                      </div>
@@ -175,7 +175,7 @@ export function Guided() {
 
                  {/* Error Message */}
                  {error && (
-                     <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">
+                     <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm border border-red-100 dark:border-red-800">
                          {error}
                      </div>
                  )}
@@ -192,14 +192,14 @@ export function Guided() {
                          <button 
                             onClick={() => startCamera()}
                             disabled={loading || showCamera}
-                            className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-2 border border-transparent hover:border-blue-100"
+                            className="px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors flex items-center gap-2 border border-transparent hover:border-blue-100 dark:hover:border-blue-800"
                         >
                              <Camera size={20} /> <span className="hidden sm:inline">Câmera</span>
                          </button>
                          <button 
                             onClick={() => fileInputRef.current?.click()}
                             disabled={loading}
-                            className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-2 border border-transparent hover:border-blue-100"
+                            className="px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors flex items-center gap-2 border border-transparent hover:border-blue-100 dark:hover:border-blue-800"
                         >
                              <Folder size={20} /> <span className="hidden sm:inline">Arquivo</span>
                          </button>
@@ -220,11 +220,11 @@ export function Guided() {
 
             {/* Solution Display */}
             {solution && (
-                <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex justify-between items-start mb-6 border-b border-gray-100 pb-4">
-                        <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <div className="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex justify-between items-start mb-6 border-b border-gray-100 dark:border-slate-700 pb-4">
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
                             {solution.title}
-                            <button onClick={() => speak(solution.title)} className="text-gray-400 hover:text-blue-600 transition-colors">
+                            <button onClick={() => speak(solution.title)} className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                                 <Volume2 size={18} />
                             </button>
                         </h2>
@@ -233,31 +233,31 @@ export function Guided() {
 
                     <div className="space-y-8">
                         {solution.steps.map((step, idx) => (
-                            <div key={idx} className="relative pl-6 border-l-2 border-blue-100">
-                                <span className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-blue-100 border-2 border-white"></span>
-                                <h3 className="font-semibold text-lg text-gray-800 mb-2 flex items-center gap-2">
+                            <div key={idx} className="relative pl-6 border-l-2 border-blue-100 dark:border-blue-900">
+                                <span className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900 border-2 border-white dark:border-slate-800"></span>
+                                <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
                                     Passo {idx + 1}: {step.stepTitle}
-                                    <button onClick={() => speak(step.stepTitle + '. ' + step.explanation)} className="text-gray-300 hover:text-blue-500 transition-colors">
+                                    <button onClick={() => speak(step.stepTitle + '. ' + step.explanation)} className="text-gray-300 dark:text-gray-600 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
                                         <Volume2 size={16} />
                                     </button>
                                 </h3>
                                 <div 
-                                    className="prose prose-sm text-gray-600 max-w-none mb-3"
+                                    className="prose prose-sm text-gray-600 dark:text-gray-300 max-w-none mb-3"
                                     dangerouslySetInnerHTML={{ __html: marked.parse(step.explanation) as string }}
                                 ></div>
                                 {step.calculation && (
-                                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 font-mono text-sm text-gray-700 overflow-x-auto">
+                                    <div className="bg-gray-50 dark:bg-slate-900 p-3 rounded-lg border border-gray-100 dark:border-slate-700 font-mono text-sm text-gray-700 dark:text-gray-300 overflow-x-auto">
                                         {step.calculation}
                                     </div>
                                 )}
                             </div>
                         ))}
 
-                        <div className="mt-8 bg-green-50 p-6 rounded-xl border border-green-100">
-                            <h3 className="text-green-800 font-bold text-lg mb-2">Resposta Final</h3>
-                            <div className="text-green-900 font-medium flex items-center gap-2">
+                        <div className="mt-8 bg-green-50 dark:bg-green-900/20 p-6 rounded-xl border border-green-100 dark:border-green-900/50">
+                            <h3 className="text-green-800 dark:text-green-400 font-bold text-lg mb-2">Resposta Final</h3>
+                            <div className="text-green-900 dark:text-green-200 font-medium flex items-center gap-2">
                                 {solution.finalAnswer}
-                                <button onClick={() => speak(solution.finalAnswer)} className="text-green-600 hover:text-green-800 transition-colors">
+                                <button onClick={() => speak(solution.finalAnswer)} className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 transition-colors">
                                     <Volume2 size={18} />
                                 </button>
                             </div>

@@ -48,19 +48,17 @@ export function Learn() {
                 currentQuestion.answer,
                 QuestionType.OPEN_ENDED
             );
+            
             setFeedback({
                 isCorrect: evaluation.isCorrect,
                 text: evaluation.feedback
             });
+
             if (evaluation.isCorrect) {
-                setScore(prev => prev + 1);
+                setScore(score + 1);
             }
         } catch (err) {
             console.error(err);
-             setFeedback({
-                isCorrect: false,
-                text: "Erro ao avaliar resposta."
-            });
         } finally {
             setIsEvaluating(false);
         }
@@ -69,98 +67,89 @@ export function Learn() {
     const handleNext = () => {
         setFeedback(null);
         if (currentQuestionIndex < questions.length - 1) {
-            setCurrentQuestionIndex(prev => prev + 1);
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
         } else {
             setQuizFinished(true);
         }
     };
-    
-    const handleSkip = () => {
-         setFeedback({
-             isCorrect: false,
-             text: `Pulada. A resposta sugerida era: ${questions[currentQuestionIndex].answer}`
-         });
-    };
 
-    const restartQuiz = () => {
-        setTopic('');
-        setQuestions([]);
-        setQuizStarted(false);
-        setQuizFinished(false);
-        setFeedback(null);
-        setScore(0);
+    const handleSkip = () => {
+        setFeedback({
+            isCorrect: false,
+            text: `A resposta correta era: ${questions[currentQuestionIndex].answer}`
+        });
     };
 
     if (quizFinished) {
-         return (
-             <div className="flex flex-col gap-6 max-w-2xl mx-auto">
-                <h1 className="text-2xl font-bold text-gray-800">Resultado do Quiz</h1>
-                <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
-                    <p className="text-xl mb-4">Você acertou {score} de {questions.length} questões!</p>
-                    <button 
-                        onClick={restartQuiz}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-8 rounded-lg transition-colors"
-                    >
-                        Novo Quiz
-                    </button>
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 animate-in zoom-in duration-300">
+                <h2 className="text-3xl font-bold text-gray-800 dark:text-white">Quiz Finalizado!</h2>
+                <div className="text-xl text-gray-600 dark:text-gray-300">
+                    Sua pontuação final: <span className="font-bold text-blue-600 dark:text-blue-400">{score}</span> de {questions.length}
                 </div>
-             </div>
-         );
+                <button 
+                    onClick={() => {
+                        setQuizStarted(false);
+                        setTopic('');
+                        setQuestions([]);
+                    }}
+                    className="mt-4 px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition"
+                >
+                    Voltar ao Início
+                </button>
+            </div>
+        );
     }
 
     if (quizStarted) {
         return (
-            <div className="flex flex-col gap-6">
-                <div className="flex items-center gap-4">
-                     <button onClick={restartQuiz} className="text-gray-600 hover:text-gray-900 flex items-center gap-2">
-                        <ArrowLeft size={20} /> Voltar
-                     </button>
-                     <h1 className="text-2xl font-bold text-gray-800">Modo Aprender: {topic}</h1>
-                </div>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-                    <Quiz 
-                        currentStep={currentQuestionIndex + 1}
-                        totalSteps={questions.length}
-                        question={questions[currentQuestionIndex].question}
-                        onAnswer={handleAnswer}
-                        onSkip={handleSkip}
-                        isEvaluating={isEvaluating}
-                        feedback={feedback}
-                        onNext={handleNext}
-                    />
-                </div>
+            <div className="w-full max-w-4xl mx-auto">
+                <button 
+                    onClick={() => setQuizStarted(false)} 
+                    className="mb-6 flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+                >
+                    <ArrowLeft size={20} className="mr-2" /> Voltar
+                </button>
+                <Quiz 
+                    currentStep={currentQuestionIndex + 1}
+                    totalSteps={questions.length}
+                    question={questions[currentQuestionIndex].question}
+                    onAnswer={handleAnswer}
+                    onSkip={handleSkip}
+                    isEvaluating={isEvaluating}
+                    feedback={feedback}
+                    onNext={handleNext}
+                />
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col gap-6 max-w-2xl mx-auto">
-            <h1 className="text-2xl font-bold text-gray-800">Modo Aprender</h1>
-            <p className="text-gray-600">Responda às perguntas e receba feedback instantâneo da IA.</p>
-            
-            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-                <div className="flex flex-col gap-4">
-                    <label className="text-sm font-medium text-gray-700">Sobre o que você quer aprender?</label>
-                    <textarea 
-                        className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
-                        rows={3}
-                        placeholder="Ex: Revolução Francesa, Física Quântica, Verbos em Inglês..."
-                        value={topic}
-                        onChange={(e) => setTopic(e.target.value)}
-                        disabled={isLoading}
-                    />
-                    
-                    {error && <p className="text-red-500 text-sm">{error}</p>}
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 max-w-lg mx-auto text-center">
+             <div className="space-y-4">
+                 <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Modo Aprender</h1>
+                 <p className="text-gray-600 dark:text-gray-300">Responda às perguntas e receba feedback instantâneo da IA.</p>
+             </div>
 
-                    <button 
-                        onClick={handleStartQuiz}
-                        disabled={!topic.trim() || isLoading}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-8 rounded-lg transition-colors shadow-sm disabled:opacity-50 mt-2 flex justify-center items-center"
-                    >
-                        {isLoading ? 'Gerando Perguntas...' : 'Começar a Aprender'}
-                    </button>
-                </div>
-            </div>
+             <div className="w-full bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700">
+                 <label className="block text-sm font-medium mb-4 text-left text-gray-700 dark:text-gray-300">Sobre o que você quer aprender?</label>
+                 <textarea 
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    className="w-full p-4 border border-gray-300 dark:border-slate-600 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none h-32 mb-6"
+                    placeholder="Ex: Revolução Francesa, Física Quântica, Verbos em Inglês..."
+                 />
+                 
+                 {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+
+                 <button 
+                    onClick={handleStartQuiz}
+                    disabled={!topic || isLoading}
+                    className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                 >
+                     {isLoading ? 'Iniciando...' : 'Começar a Aprender'}
+                 </button>
+             </div>
         </div>
     );
 }
