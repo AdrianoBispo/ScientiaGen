@@ -130,7 +130,7 @@ export function Guided() {
 
     return (
         <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-10">
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Aprendizagem Guiada</h1>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Solução Guiada</h1>
             <p className="text-gray-600 dark:text-gray-300">Envie um problema ou dúvida e receba uma explicação passo a passo.</p>
             
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">

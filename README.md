@@ -10,7 +10,7 @@ Bem-vindo ao **ScientiaGen**, sua plataforma de estudos pessoal e inteligente, p
 - **Aprender:** Um modo de quiz com perguntas abertas onde a IA avalia a precisão das respostas do usuário.
 - **Cartões (Flashcards):** Gera flashcards interativos e viráveis sobre qualquer tópico, com um visualizador focado para estudo imediato.
 - **Combinar:** Um jogo de correspondência cronometrado onde os usuários arrastam e soltam termos para suas definições corretas.
-- **Aprendizagem Guiada:** Fornece soluções passo a passo detalhadas para problemas ou perguntas complexas.
+- **Solução Guiada:** Fornece soluções passo a passo detalhadas para problemas ou perguntas complexas.
 - **Misto:** Um quiz desafiador que combina perguntas de múltipla escolha, de preencher lacunas e abertas.
 
 ### Biblioteca Pessoal e Persistência

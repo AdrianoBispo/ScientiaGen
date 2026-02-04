@@ -24,7 +24,7 @@ export function Sidebar() {
                 <NavItem to="/flashcards" icon={<GalleryVerticalEnd size={24} />} label="Cartões" isHovered={isHovered} />
                 <NavItem to="/match" icon={<Puzzle size={24} />} label="Combinar" isHovered={isHovered} />
                 <NavItem to="/mixed" icon={<Shuffle size={24} />} label="Misto" isHovered={isHovered} />
-                <NavItem to="/guided" icon={<GraduationCap size={24} />} label="Aprendizagem Guiada" isHovered={isHovered} />
+                <NavItem to="/guided" icon={<GraduationCap size={24} />} label="Solução Guiada" isHovered={isHovered} />
             </nav>
         </aside>
     );

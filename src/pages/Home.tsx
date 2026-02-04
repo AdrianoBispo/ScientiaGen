@@ -47,7 +47,7 @@ export function Home() {
     },
     {
       to: "/guided",
-      title: "Aprendizagem Guiada",
+      title: "Solução Guiada",
       desc: "Receba ajuda passo a passo para resolver problemas.",
       icon: <GraduationCap size={40} />,
     },
