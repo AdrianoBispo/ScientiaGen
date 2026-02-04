@@ -20,11 +20,11 @@ export function Sidebar() {
                 <NavItem to="/" icon={<Home size={24} />} label="Início" isHovered={isHovered} />
                 <div className="border-t border-gray-100 dark:border-slate-700 my-2"></div>
                 <NavItem to="/learn" icon={<Brain size={24} />} label="Aprender" isHovered={isHovered} />
+                <NavItem to="/test" icon={<ClipboardList size={24} />} label="Testes" isHovered={isHovered} />
                 <NavItem to="/flashcards" icon={<GalleryVerticalEnd size={24} />} label="Cartões" isHovered={isHovered} />
                 <NavItem to="/match" icon={<Puzzle size={24} />} label="Combinar" isHovered={isHovered} />
                 <NavItem to="/mixed" icon={<Shuffle size={24} />} label="Misto" isHovered={isHovered} />
                 <NavItem to="/guided" icon={<GraduationCap size={24} />} label="Aprendizagem Guiada" isHovered={isHovered} />
-                <NavItem to="/test" icon={<ClipboardList size={24} />} label="Modo Teste" isHovered={isHovered} />
             </nav>
         </aside>
     );

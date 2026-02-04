@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Brain, GalleryVerticalEnd, GraduationCap, Puzzle, Shuffle } from 'lucide-react';
+import { Brain, ClipboardList, GalleryVerticalEnd, GraduationCap, Puzzle, Shuffle } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Navigation } from 'swiper/modules';
 import 'swiper/css';
@@ -13,6 +13,12 @@ export function Home() {
             title: "Aprender",
             desc: "Teste seus conhecimentos com quizzes gerados por IA.",
             icon: <Brain size={40} />
+        },
+        {
+            to: "/test",
+            title: "Testes",
+            desc: "Desafie-se com testes personalizados para avaliar seu aprendizado.",
+            icon: <ClipboardList size={40} />
         },
         {
             to: "/flashcards",

@@ -73,7 +73,7 @@ export function TestMode() {
             <div className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-full mb-6">
                 <BookOpen size={48} className="text-blue-600 dark:text-blue-400" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3 text-center">Modo Teste</h1>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3 text-center">Testes</h1>
             <p className="text-gray-600 dark:text-gray-400 text-center mb-8">
                 Teste seus conhecimentos sobre qualquer assunto. O Gemini criará perguntas de múltipla escolha para você praticar.
             </p>
