@@ -190,7 +190,7 @@ export async function solveProblem(problem: string, imageData?: string, mimeType
             ? `Aja como um tutor especialista. Forneça uma solução passo a passo detalhada para o seguinte problema. Gere uma resposta JSON que corresponda ao esquema fornecido. O problema é:\n\n${problem}`
             : `Aja como um tutor especialista. Analise a imagem ou documento fornecido e forneça uma solução passo a passo detalhada para o problema identificado. Gere uma resposta JSON que corresponda ao esquema fornecido.`;
             
-        const parts: any[] = [{ text: promptText }];
+        const parts: any[] = [];
         
         if (imageData && mimeType) {
             parts.push({
@@ -200,6 +200,8 @@ export async function solveProblem(problem: string, imageData?: string, mimeType
                 }
             });
         }
+
+        parts.push({ text: promptText });
 
         // Schema for structured output
         const solutionSchema = {
@@ -225,7 +227,7 @@ export async function solveProblem(problem: string, imageData?: string, mimeType
 
         const result = await ai.models.generateContent({
             model: 'gemini-2.5-flash', 
-            contents: { parts: parts },
+            contents: [{ parts: parts }] as any,
              // Note: GoogleGenAI JS SDK schema definition might be slightly different or handled via responseSchema directly
              // For simple JSON mode we just ask for JSON mimeType, but let's try to be specific if possible or rely on the prompt + mimeType
             config: { 

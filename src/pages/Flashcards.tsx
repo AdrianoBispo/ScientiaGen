@@ -17,20 +17,7 @@ interface FlashcardSet {
 
 export function Flashcards() {
   // Global State
-  const [sets, setSets] = useLocalStorage<FlashcardSet[]>('flashcardSets', [
-    {
-      id: '1',
-      title: 'Cartões: Roma Antiga',
-      cards: [
-        { term: 'Rômulo e Remo', definition: 'Fundadores míticos de Roma, criados por uma loba.' },
-        { term: '753 a.C.', definition: 'Data lendária da fundação de Roma.' },
-        { term: 'Reino de Roma', definition: 'Primeira forma de governo de Roma, governada por reis (c. 753 a.C. - 509 a.C.).' },
-        { term: 'República Romana', definition: 'Período onde o poder era dividido entre magistrados eleitos (c. 509 a.C. - 27 a.C.).' },
-        { term: 'Império Romano', definition: 'Período onde Roma foi governada por imperadores (27 a.C. - 476 d.C.).' }
-      ],
-      createdAt: new Date().toISOString()
-    }
-  ]);
+  const [sets, setSets] = useLocalStorage<FlashcardSet[]>('flashcardSets', []);
   const [currentView, setCurrentView] = useState<'sets' | 'generator' | 'study' | 'manual'>('sets');
   const [activeSetId, setActiveSetId] = useState<string | null>(null);
 
