@@ -5,7 +5,7 @@ import {
   onAuthStateChanged, 
   User 
 } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase';
+import { auth, googleProvider } from '../../../services/firebase';
 
 interface AuthContextType {
   currentUser: User | null;

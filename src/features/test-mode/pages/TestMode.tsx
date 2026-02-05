@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { generateTestQuestions, TestQuestion } from '../services/ai';
+import { generateTestQuestions, TestQuestion } from '../../../services/ai';
 import { Loader2, CheckCircle2, XCircle, ChevronRight, RefreshCw, BookOpen, History, Save, Trash2 } from 'lucide-react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useLocalStorage } from '../../../hooks/useLocalStorage';
 
 interface TestHistoryItem {
     id: string;

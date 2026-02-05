@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Quiz } from '../components/Quiz';
-import { generateLearnQuestions, checkAnswer, QuizQuestion, QuestionType } from '../services/ai';
+import { generateLearnQuestions, checkAnswer, QuizQuestion, QuestionType } from '../../../services/ai';
 import { ArrowLeft, History, Trash2, Save } from 'lucide-react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useLocalStorage } from '../../../hooks/useLocalStorage';
 
 interface LearnHistoryItem {
     id: string;

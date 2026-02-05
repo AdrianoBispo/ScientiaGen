@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../../features/auth/contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { 
     BarChart, 
     Settings, 

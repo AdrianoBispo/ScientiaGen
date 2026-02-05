@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateFlashcards, FlashcardData } from '../services/ai';
+import { generateFlashcards, FlashcardData } from '../../../services/ai';
 import { Play, Settings, RefreshCw, Timer, CheckCircle, XCircle, History, Trash2, Save } from 'lucide-react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useLocalStorage } from '../../../hooks/useLocalStorage';
 
 type GameState = 'setup' | 'loading' | 'playing' | 'finished';
 

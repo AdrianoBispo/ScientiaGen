@@ -1,6 +1,6 @@
 import React from 'react';
 import { BarChart, Clock, Award, Target } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../auth/contexts/AuthContext';
 
 export function Statistics() {
     const { currentUser } = useAuth();

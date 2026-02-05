@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { generateMixedQuiz, checkAnswer, MistoQuestion, QuestionType } from '../services/ai';
+import { generateMixedQuiz, checkAnswer, MistoQuestion, QuestionType } from '../../../services/ai';
 import { History, Save, Trash2 } from 'lucide-react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useLocalStorage } from '../../../hooks/useLocalStorage';
 
 interface MixedHistoryItem {
     id: string;

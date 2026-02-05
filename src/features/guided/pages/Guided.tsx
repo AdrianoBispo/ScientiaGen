@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Folder, X, RefreshCw, Volume2, Save, Trash2, History } from 'lucide-react';
-import { solveProblem, Solution } from '../services/ai';
+import { solveProblem, Solution } from '../../../services/ai';
 import { marked } from 'marked';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useLocalStorage } from '../../../hooks/useLocalStorage';
 
 interface GuidedHistoryItem {
     id: string;

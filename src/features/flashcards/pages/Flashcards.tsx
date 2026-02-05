@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useLocalStorage } from '../../../hooks/useLocalStorage';
 import { Card } from '../components/Card';
-import { generateFlashcards, FlashcardData } from '../services/ai';
+import { generateFlashcards, FlashcardData } from '../../../services/ai';
 import { 
   Plus, Brain, Loader2, Folder, MoreVertical, 
   Volume2, X, ChevronLeft, ChevronRight, CheckSquare, 
