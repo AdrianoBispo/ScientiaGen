@@ -238,30 +238,38 @@ export function Flashcards() {
     <div className="w-full max-w-6xl mx-auto p-6">
       
       {/* Create Buttons */}
-      <h2 className="text-3xl font-bold mb-8 text-gray-800 dark:text-white">Criar Cartões</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <h2 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white">Cartões</h2>
+      <p className="text-gray-500 dark:text-gray-400 mb-8">Escolha como deseja criar seus cartões.</p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <button 
           onClick={() => setCurrentView('generator')}
-          className="p-6 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-gray-300 dark:border-slate-600 flex flex-col items-center justify-center gap-3 text-gray-600 dark:text-gray-300 hover:border-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors group"
+          className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
         >
-          <div className="p-4 bg-purple-50 dark:bg-purple-900/30 rounded-full group-hover:scale-110 transition-transform">
-            <Brain size={32} className="text-purple-600 dark:text-purple-400" />
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl group-hover:scale-110 transition-transform">
+            <Brain size={28} className="text-blue-600 dark:text-blue-400" />
           </div>
-          <span className="font-medium text-lg">Gerar com IA</span>
+          <div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">Gerar com IA</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Use o formulário para gerar pares de termos e definições com IA.</p>
+          </div>
         </button>
         
         <button 
            onClick={() => setCurrentView('manual')}
-           className="p-6 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-gray-300 dark:border-slate-600 flex flex-col items-center justify-center gap-3 text-gray-600 dark:text-gray-300 hover:border-green-500 hover:text-green-600 dark:hover:text-green-400 transition-colors group"
+           className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-green-400 dark:hover:border-green-500 hover:shadow-md transition-all group"
         >
-          <div className="p-4 bg-green-50 dark:bg-green-900/30 rounded-full group-hover:scale-110 transition-transform">
-            <Plus size={32} className="text-green-600 dark:text-green-400" />
+          <div className="p-4 bg-green-50 dark:bg-green-900/30 rounded-xl group-hover:scale-110 transition-transform">
+            <Pencil size={28} className="text-green-600 dark:text-green-400" />
           </div>
-          <span className="font-medium text-lg">Criar Manualmente</span>
+          <div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">Criar Manualmente</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Crie seus próprios pares de termo e definição.</p>
+          </div>
         </button>
 
         <label 
-           className="p-6 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-gray-300 dark:border-slate-600 flex flex-col items-center justify-center gap-3 text-gray-600 dark:text-gray-300 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group cursor-pointer"
+           className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md transition-all group cursor-pointer md:col-span-2 lg:col-span-1"
         >
           <input 
             type="file" 
@@ -271,15 +279,17 @@ export function Flashcards() {
             className="hidden"
             disabled={isImporting}
           />
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-full group-hover:scale-110 transition-transform">
+          <div className="p-4 bg-purple-50 dark:bg-purple-900/30 rounded-xl group-hover:scale-110 transition-transform">
             {isImporting ? (
-              <Loader2 size={32} className="text-blue-600 dark:text-blue-400 animate-spin" />
+              <Loader2 size={28} className="text-purple-600 dark:text-purple-400 animate-spin" />
             ) : (
-              <FileSpreadsheet size={32} className="text-blue-600 dark:text-blue-400" />
+              <FileSpreadsheet size={28} className="text-purple-600 dark:text-purple-400" />
             )}
           </div>
-          <span className="font-medium text-lg">{isImporting ? 'Importando...' : 'Importar Planilha'}</span>
-          <span className="text-xs text-gray-400">.xlsx, .xls, .csv, .ods, .xlsm</span>
+          <div>
+            <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">{isImporting ? 'Importando...' : 'Importar Planilha'}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Importe dados de .xlsx, .xls, .csv, .ods ou .xlsm.</p>
+          </div>
         </label>
       </div>
 
