@@ -45,6 +45,12 @@ Este documento descreve os cenários de teste para a aplicação **ScientiaGen**
 - **Resultado Esperado:**
     - A IA gera perguntas relevantes ao tópico.
     - Após submissão, o sistema exibe um feedback/correção gerado pela IA avaliando a precisão da resposta do usuário.
+- **Cenário de Exemplo:**
+    - **Tópico:** "Fotossíntese"
+    - **Ação:** O usuário insere "Ocorre nas mitocôndrias" para uma pergunta sobre onde ocorre a fotossíntese.
+    - **Validação:** O sistema deve marcar a resposta como incorreta e explicar que ocorre nos cloroplastos.
+    - **Ação:** O usuário insere "Conversão de luz solar em energia química nos cloroplastos".
+    - **Validação:** O sistema deve marcar como correta.
 
 ### 2.2 Modo Flashcards
 **Objetivo:** Testar a mecânica de criação e visualização de flashcards.
@@ -57,6 +63,10 @@ Este documento descreve os cenários de teste para a aplicação **ScientiaGen**
     - Flashcards são gerados com Termo (frente) e Definição (verso).
     - A animação de "virar" funciona corretamente.
     - A navegação percorre todos os cartões gerados.
+- **Cenário de Exemplo:**
+    - **Tópico:** "Inglês Básico"
+    - **Resultado:** Gerar de 5 a 10 cartões. Ex: Frente "Hello", Verso "Olá".
+    - **Interação:** Clicar no cartão "Hello" deve revelar "Olá". Clicar na seta "Próximo" deve mostrar o próximo termo (ex: "Goodbye").
 
 ### 2.3 Modo Combinar (Jogo de Memória)
 **Objetivo:** Verificar a lógica de associação de termos e definições.
@@ -69,6 +79,11 @@ Este documento descreve os cenários de teste para a aplicação **ScientiaGen**
     - Pares corretos desaparecem ou são marcados como concluídos e pontuação aumenta.
     - Pares incorretos exibem feedback visual de erro e não são removidos.
     - O jogo finaliza quando todos os pares são encontrados.
+- **Cenário de Exemplo:**
+    - **Tópico:** "Capitais da Europa"
+    - **Jogo:** Termos [França, Espanha] e Definições [Paris, Madrid].
+    - **Erro:** Conectar "França" com "Madrid" -> Feedback visual vermelho/erro.
+    - **Acerto:** Conectar "França" com "Paris" -> Ambos itens ficam verdes ou somem da tela. Pontuação sobe.
 
 ### 2.4 Solução Guiada
 **Objetivo:** Testar a geração de passos para resolução de problemas.
@@ -79,6 +94,13 @@ Este documento descreve os cenários de teste para a aplicação **ScientiaGen**
 - **Resultado Esperado:**
     - A IA retorna uma explicação estruturada passo a passo.
     - O conteúdo é formatado corretamente (podendo incluir Markdown/LaTeX se suportado).
+- **Cenário de Exemplo:**
+    - **Problema:** "Resolva a equação quadrática: x² - 5x + 6 = 0"
+    - **Saída Esperada:**
+        - Passo 1: Identificar coeficientes (a=1, b=-5, c=6).
+        - Passo 2: Calcular Delta ($\Delta = (-5)^2 - 4(1)(6)$).
+        - Passo 3: Encontrar raízes (x=2, x=3).
+    - **Ação:** Usuário clica em "Ouvir Explicação". O audio deve ler os passos.
 
 ### 2.5 Modo Misto
 **Objetivo:** Validar a geração de múltiplos tipos de questões em uma única sessão.
@@ -89,6 +111,11 @@ Este documento descreve os cenários de teste para a aplicação **ScientiaGen**
 - **Resultado Esperado:**
     - O quiz apresenta variedade de formatos de perguntas.
     - A validação de respostas funciona adequadamente para cada tipo específico.
+- **Cenário de Exemplo:**
+    - **Tópico:** "Sistema Solar"
+    - **Questão 1 (Múltipla Escolha):** "Qual o maior planeta?" [Terra, **Júpiter**, Marte, Vênus]. Selecionar Júpiter = Correto.
+    - **Questão 2 (Lacuna):** "O sol é uma ___." (Resposta: estrela). Digitar "estrela" = Correto.
+    - **Questão 3 (Aberta):** "Descreva um eclipse." -> Digitar texto livre e aguardar avaliação da IA.
 
 ### 2.6 Modo Teste
 **Objetivo:** Simular um exame de múltipla escolha.
@@ -101,6 +128,12 @@ Este documento descreve os cenários de teste para a aplicação **ScientiaGen**
     - Feedback imediato (Certo/Errado) após confirmação.
     - Pontuação é atualizada.
     - O usuário avança para a próxima pergunta até o final.
+- **Cenário de Exemplo:**
+    - **Tópico:** "JavaScript"
+    - **Questão:** "Qual método converte JSON em objeto?"
+    - **Opções:** A) JSON.stringify, B) JSON.parse, C) JSON.object, D) JSON.to.
+    - **Ação:** Usuário seleciona B e confirma.
+    - **Resultado:** Opção B fica Verde (Correta). Pontuação +1. Botão "Próximo" habilitado.
 
 ## 3. Biblioteca e Persistência
 
