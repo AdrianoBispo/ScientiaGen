@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generateMixedQuiz, MistoQuestion, QuestionType } from '../../../services/ai';
 import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, Brain, ArrowLeft, Sparkles, Pencil } from 'lucide-react';
-import { useLocalStorage } from '../../../hooks/useLocalStorage';
+import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 
 interface MixedHistoryItem {
@@ -36,8 +36,8 @@ export function Mixed() {
         { question: '', answer: '', type: QuestionType.OPEN_ENDED }
     ]);
     
-    const [history, setHistory] = useLocalStorage<MixedHistoryItem[]>('mixedHistory', []);
-    const [savedQuizzes, setSavedQuizzes] = useLocalStorage<SavedMixedQuiz[]>('savedMixedQuizzes', []);
+    const [history, setHistory] = usePersistence<MixedHistoryItem[]>('mixedHistory', []);
+    const [savedQuizzes, setSavedQuizzes] = usePersistence<SavedMixedQuiz[]>('savedMixedQuizzes', []);
     const [editingQuiz, setEditingQuiz] = useState<SavedMixedQuiz | null>(null);
 
     const startQuiz = async () => {

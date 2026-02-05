@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Quiz } from '../components/Quiz';
 import { generateLearnQuestions, checkAnswer, QuizQuestion, QuestionType } from '../../../services/ai';
 import { ArrowLeft, Save, Play, Trash2, Edit, X, Plus, Brain, Sparkles, Pencil } from 'lucide-react';
-import { useLocalStorage } from '../../../hooks/useLocalStorage';
+import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 
 interface LearnHistoryItem {
@@ -37,8 +37,8 @@ export function Learn() {
     const [manualTitle, setManualTitle] = useState('');
     const [manualQuestions, setManualQuestions] = useState<QuizQuestion[]>([{ question: '', answer: '' }]);
 
-    const [history, setHistory] = useLocalStorage<LearnHistoryItem[]>('learnHistory', []);
-    const [savedQuizzes, setSavedQuizzes] = useLocalStorage<SavedLearnQuiz[]>('savedLearnQuizzes', []);
+    const [history, setHistory] = usePersistence<LearnHistoryItem[]>('learnHistory', []);
+    const [savedQuizzes, setSavedQuizzes] = usePersistence<SavedLearnQuiz[]>('savedLearnQuizzes', []);
     const [editingQuiz, setEditingQuiz] = useState<SavedLearnQuiz | null>(null);
 
     const handleSaveHistory = () => {

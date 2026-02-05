@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generateTestQuestions, TestQuestion } from '../../../services/ai';
 import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, AlertCircle, Brain, ArrowLeft, Sparkles, Pencil } from 'lucide-react';
-import { useLocalStorage } from '../../../hooks/useLocalStorage';
+import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 
 interface TestHistoryItem {
@@ -40,8 +40,8 @@ export function TestMode() {
     ]);
     
     // Storage
-    const [history, setHistory] = useLocalStorage<TestHistoryItem[]>('testHistory', []);
-    const [savedQuizzes, setSavedQuizzes] = useLocalStorage<SavedTestQuiz[]>('savedTestQuizzes', []);
+    const [history, setHistory] = usePersistence<TestHistoryItem[]>('testHistory', []);
+    const [savedQuizzes, setSavedQuizzes] = usePersistence<SavedTestQuiz[]>('savedTestQuizzes', []);
     const [editingQuiz, setEditingQuiz] = useState<SavedTestQuiz | null>(null);
 
     const handleStartGame = async () => {

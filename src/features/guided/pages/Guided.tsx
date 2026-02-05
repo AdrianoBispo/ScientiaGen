@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Camera, Folder, X, RefreshCw, Volume2, Trash2, History, Eye, Edit, FileText, FileType, Check, File as FileIcon, MoreVertical, Download, ChevronRight, Plus, Minus, ArrowLeft, PenLine, Sparkles } from 'lucide-react';
 import { solveProblem, Solution } from '../../../services/ai';
 import { marked } from 'marked';
-import { useLocalStorage } from '../../../hooks/useLocalStorage';
+import { usePersistence } from '../../../hooks/usePersistence';
 import { jsPDF } from 'jspdf';
 
 interface GuidedHistoryItem {
@@ -20,7 +20,7 @@ export function Guided() {
     const [error, setError] = useState<string | null>(null);
     const [showCamera, setShowCamera] = useState(false);
 
-    const [history, setHistory] = useLocalStorage<GuidedHistoryItem[]>('guidedHistory', []);
+    const [history, setHistory] = usePersistence<GuidedHistoryItem[]>('guidedHistory', []);
 
     // View state
     const [currentView, setCurrentView] = useState<'main' | 'manual' | 'ai'>('main');

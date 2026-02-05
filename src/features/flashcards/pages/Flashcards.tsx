@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocalStorage } from '../../../hooks/useLocalStorage';
+import { usePersistence } from '../../../hooks/usePersistence';
 import { Card } from '../components/Card';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { generateFlashcards, FlashcardData } from '../../../services/ai';
@@ -28,8 +28,8 @@ interface HistoryItem {
 
 export function Flashcards() {
   // Global State
-  const [sets, setSets] = useLocalStorage<FlashcardSet[]>('flashcardSets', []);
-  const [history, setHistory] = useLocalStorage<HistoryItem[]>('flashcardHistory', []);
+  const [sets, setSets] = usePersistence<FlashcardSet[]>('flashcardSets', []);
+  const [history, setHistory] = usePersistence<HistoryItem[]>('flashcardHistory', []);
   const [currentView, setCurrentView] = useState<'sets' | 'generator' | 'study' | 'manual'>('sets');
   const [activeSetId, setActiveSetId] = useState<string | null>(null);
 

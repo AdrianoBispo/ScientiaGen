@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateFlashcards, FlashcardData } from '../../../services/ai';
 import { parseSpreadsheet, getAcceptString, isValidSpreadsheetFile } from '../../../utils/spreadsheetParser';
 import { Play, Settings, RefreshCw, Timer, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, Brain, ArrowLeft, FileSpreadsheet, Loader2, Sparkles, Pencil } from 'lucide-react';
-import { useLocalStorage } from '../../../hooks/useLocalStorage';
+import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 
 type GameState = 'setup' | 'loading' | 'playing' | 'finished';
@@ -50,8 +50,8 @@ export function Match() {
     const [draggedItem, setDraggedItem] = useState<MatchCard | null>(null);
     const [errorMsg, setErrorMsg] = useState('');
     
-    const [history, setHistory] = useLocalStorage<MatchHistoryItem[]>('matchHistory', []);
-    const [savedGames, setSavedGames] = useLocalStorage<SavedMatchGame[]>('savedMatchGames', []);
+    const [history, setHistory] = usePersistence<MatchHistoryItem[]>('matchHistory', []);
+    const [savedGames, setSavedGames] = usePersistence<SavedMatchGame[]>('savedMatchGames', []);
     const [editingGame, setEditingGame] = useState<SavedMatchGame | null>(null);
 
     const timerRef = useRef<number | null>(null);
