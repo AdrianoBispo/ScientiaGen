@@ -58,24 +58,14 @@ export function Flashcards() {
   const [isStudyCardFlipped, setIsStudyCardFlipped] = useState(false);
   const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
   const touchStartX = useRef<number | null>(null);
+  const mouseStartX = useRef<number | null>(null);
+  const [studyScore, setStudyScore] = useState(0);
 
   // Manual Creation State
   const [manualSetName, setManualSetName] = useState('');
   const [manualCards, setManualCards] = useState<FlashcardData[]>([{ term: '', definition: '' }]);
 
   // Handlers
-  const completeSet = (set: FlashcardSet) => {
-    const newHistoryItem: HistoryItem = {
-        id: crypto.randomUUID(),
-        setId: set.id,
-        title: set.title,
-        date: new Date().toISOString(),
-        score: set.cards.length,
-        total: set.cards.length
-    };
-    setHistory([newHistoryItem, ...history]);
-  };
-
   const handleGenerate = async () => {
     if (!genTopic.trim()) return;
     setIsGenerating(true);
@@ -130,6 +120,18 @@ export function Flashcards() {
     setCurrentView('sets');
   };
 
+  const addToHistory = (set: FlashcardSet, finalScore: number) => {
+    const historyItem: HistoryItem = {
+        id: crypto.randomUUID(),
+        setId: set.id,
+        title: set.title,
+        date: new Date().toISOString(),
+        score: finalScore,
+        total: set.cards.length
+    };
+    setHistory(prev => [historyItem, ...prev]);
+  };
+
   const handleUpdateSet = () => {
       if (!editingSet || !editingSet.title.trim()) return;
       setSets(sets.map(s => s.id === editingSet.id ? editingSet : s));
@@ -142,25 +144,30 @@ export function Flashcards() {
       utterance.lang = 'pt-BR';
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
-    }if (viewCardIndex === currentSet.cards.length - 1) {
-                 completeSet(currentSet);
-             }
-             
+    }
   };
 
   const handleStudyNextCard = (direction: 'left' | 'right') => {
       setSwipeAnimation(direction === 'right' ? 'slide-out-right' : 'slide-out-left');
       
+      const isCorrect = direction === 'right';
+      const newScore = isCorrect ? studyScore + 1 : studyScore;
+      setStudyScore(newScore);
+
       setTimeout(() => {
           setSwipeAnimation(null);
           setIsStudyCardFlipped(false);
           
           const currentSet = sets.find(s => s.id === activeSetId);
           if (currentSet && viewCardIndex < currentSet.cards.length) {
+             if (viewCardIndex === currentSet.cards.length - 1) {
+                 addToHistory(currentSet, newScore);
+             }
              setViewCardIndex(prev => prev + 1);
           }
       }, 300); 
   };
+             
 
   useEffect(() => {
       if (currentView !== 'study') return;
@@ -218,14 +225,19 @@ export function Flashcards() {
         historyItems={history}
         savedTabLabel="Lista de Cartões"
         historyTabLabel="Histórico"
-        onPlaySaved={(set) => { setActiveSetId(set.id); setCurrentView('study'); setViewCardIndex(0); }}
+        onPlaySaved={(set) => { 
+            setActiveSetId(set.id); 
+            setCurrentView('study'); 
+            setViewCardIndex(0); 
+            setStudyScore(0);
+        }}
         onEditSaved={(set) => setEditingSet(set)}
         onDeleteSaved={(id) => setSets(sets.filter(s => s.id !== id))}
         onDeleteHistory={(id) => setHistory(history.filter(h => h.id !== id))}
         getSavedTitle={(set) => set.title}
         getSavedSubtitle={(set) => `${set.cards.length} cartões`}
         getHistoryTitle={(item) => item.title}
-        getHistorySubtitle={(item) => new Date(item.date).toLocaleDateString()}
+        getHistorySubtitle={(item) => new Date(item.date).toLocaleString()}
         getHistoryScore={(item) => item.score !== undefined && item.total ? `${item.score}/${item.total}` : ''}
       />
     </div>
@@ -536,6 +548,12 @@ export function Flashcards() {
                         <h4 className="font-bold text-gray-800 dark:text-white">Ações dos Cartões</h4>
                         <button onClick={() => setShowSetActionsModal(null)} className="text-gray-400 hover:text-gray-600">
                             <X size={20} />
+                                setActiveSetId(set.id); 
+                                setCurrentView('study'); 
+                                setShowSetActionsModal(null); 
+                                setViewCardIndex(0); 
+                                setStudyScore(0);
+                           
                         </button>
                     </div>
                     <div className="p-2">
@@ -594,7 +612,7 @@ export function Flashcards() {
                    <div className="flex-1 flex flex-col items-center justify-center w-full pb-20 overflow-hidden">
                         {viewCardIndex >= activeSet.cards.length ? (
                             <div className="flex flex-col items-center animate-fade-in text-center p-8 bg-white dark:bg-slate-800 rounded-3xl shadow-lg max-w-lg border border-gray-100 dark:border-slate-700">
-                                <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-6">
+                                <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-fullsetStudyScore(0);  flex items-center justify-center mb-6">
                                     <CheckSquare size={40} className="text-green-600 dark:text-green-400" />
                                 </div>
                                 <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Parabéns!</h2>
@@ -628,6 +646,19 @@ export function Flashcards() {
                                     }
                                     touchStartX.current = null;
                                 }}
+                                onMouseDown={e => mouseStartX.current = e.clientX}
+                                onMouseUp={e => {
+                                    if (mouseStartX.current === null) return;
+                                    const diff = e.clientX - mouseStartX.current;
+                                    if (Math.abs(diff) > 50) { 
+                                         const currentSet = sets.find(s => s.id === activeSetId);
+                                         if (currentSet && viewCardIndex < currentSet.cards.length) {
+                                              handleStudyNextCard(diff > 0 ? 'right' : 'left');
+                                         }
+                                    }
+                                    mouseStartX.current = null;
+                                }}
+                                onMouseLeave={() => mouseStartX.current = null}
                             >
                                 <Card 
                                     term={activeSet.cards[viewCardIndex].term} 
@@ -656,10 +687,22 @@ export function Flashcards() {
                                 <button 
                                     onClick={() => {
                                          if (viewCardIndex < activeSet.cards.length - 1) {
-                                             scompleteSet(activeSet);
-                                              etViewCardIndex(prev => prev + 1);
+                                             setViewCardIndex(prev => prev + 1);
                                              setIsStudyCardFlipped(false);
                                          } else if (viewCardIndex === activeSet.cards.length - 1) {
+                                              addToHistory(activeSet, studyScore); // Assumes button click is neutral/skip if logic isn't changed. OR treat as correct? 
+                                              // If we want the button to count as correct, we should update studyScore here too.
+                                              // Assuming "CheckSquare" (Finish) means done. The user reported scoring issues.
+                                              // If user clicks "Next" without swiping, the score doesn't increase. 
+                                              // Let's assume Check = Done with current score.
+                                              // But wait, the user said "answer always given as if all were correct".
+                                              // That was because I was passing set.cards.length.
+                                              // Now I'm passing studyScore. If user only clicks "Next", score remains 0.
+                                              // That is technically correct if they didn't "swipe right".
+                                              // But users might expect "Next" button to just move forward.
+                                              // Let's leave it as is: user must swipe or use arrows to score. 
+                                              // Or should I add Explicit Correct/Incorrect buttons?
+                                              // The user said "dragging left and right is not working". I should focus on fixing drag.
                                               setViewCardIndex(prev => prev + 1); // Finish
                                          }
                                     }}

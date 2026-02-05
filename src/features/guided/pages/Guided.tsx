@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Folder, X, RefreshCw, Volume2, Save, Trash2, History, Eye, Edit, Download, FileText, FileType, Check, File as FileIcon } from 'lucide-react';
+import { Camera, Folder, X, RefreshCw, Volume2, Trash2, History, Eye, Edit, FileText, FileType, Check, File as FileIcon, MoreVertical, Download, ChevronRight } from 'lucide-react';
 import { solveProblem, Solution } from '../../../services/ai';
 import { marked } from 'marked';
 import { useLocalStorage } from '../../../hooks/useLocalStorage';
@@ -19,36 +19,85 @@ export function Guided() {
     const [solution, setSolution] = useState<Solution | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [showCamera, setShowCamera] = useState(false);
-    // const [showHistory, setShowHistory] = useState(false); // Removed separate history toggle
-    
-    // Tab state
-    const [activeTab, setActiveTab] = useState<'history' | 'saved'>('history');
 
     const [history, setHistory] = useLocalStorage<GuidedHistoryItem[]>('guidedHistory', []);
-    const [savedSolutions, setSavedSolutions] = useLocalStorage<GuidedHistoryItem[]>('guidedSavedSolutions', []);
 
+    // Modal States
+    const [showActionsModal, setShowActionsModal] = useState<string | null>(null);
+    const [showViewModal, setShowViewModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [viewingItem, setViewingItem] = useState<GuidedHistoryItem | null>(null);
+    const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+    
     // Editing State
     const [editingItem, setEditingItem] = useState<GuidedHistoryItem | null>(null);
-    const [editTitle, setEditTitle] = useState('');
-    const [editFinalAnswer, setEditFinalAnswer] = useState('');
+    const [editMarkdown, setEditMarkdown] = useState('');
+    const [editPreviewMode, setEditPreviewMode] = useState<'edit' | 'preview'>('edit');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
 
-    // --- Actions ---
+    // --- Helper Functions ---
 
-    const handleSaveToSaved = (sol: Solution, text: string) => {
-        const newItem: GuidedHistoryItem = {
-            id: crypto.randomUUID(),
-            date: new Date().toISOString(),
-            problem: text || 'Problema',
-            solution: sol
-        };
-        setSavedSolutions([newItem, ...savedSolutions]);
-        alert('Solução salva nos itens salvos!');
+    const solutionToMarkdown = (item: GuidedHistoryItem): string => {
+        const sol = item.solution;
+        let content = `# ${sol.title}\n\n`;
+        content += `**Data:** ${new Date(item.date).toLocaleDateString()}\n\n`;
+        content += `**Problema:** ${item.problem}\n\n---\n\n`;
+        
+        sol.steps.forEach((step, i) => {
+            content += `### Passo ${i + 1}: ${step.stepTitle}\n\n`;
+            content += `${step.explanation}\n\n`;
+            if (step.calculation) content += `\`\`\`\n${step.calculation}\n\`\`\`\n\n`;
+        });
+        content += `## Resposta Final\n\n${sol.finalAnswer}`;
+        return content;
     };
+
+    const markdownToSolution = (markdown: string, originalItem: GuidedHistoryItem): Solution => {
+        // Parse the markdown back to Solution structure
+        const lines = markdown.split('\n');
+        let title = originalItem.solution.title;
+        let finalAnswer = originalItem.solution.finalAnswer;
+        const steps = [...originalItem.solution.steps];
+        
+        // Extract title
+        const titleMatch = markdown.match(/^# (.+)$/m);
+        if (titleMatch) title = titleMatch[1];
+        
+        // Extract final answer
+        const finalAnswerMatch = markdown.match(/## Resposta Final\s*\n+(.+)/s);
+        if (finalAnswerMatch) finalAnswer = finalAnswerMatch[1].trim();
+        
+        // Extract steps
+        const stepRegex = /### Passo (\d+): (.+)\n\n([\s\S]*?)(?=### Passo|## Resposta Final|$)/g;
+        let match;
+        const newSteps: { stepTitle: string; explanation: string; calculation?: string }[] = [];
+        
+        while ((match = stepRegex.exec(markdown)) !== null) {
+            const stepTitle = match[2];
+            let content = match[3].trim();
+            let calculation: string | undefined;
+            
+            const calcMatch = content.match(/```\n?([\s\S]*?)```/);
+            if (calcMatch) {
+                calculation = calcMatch[1].trim();
+                content = content.replace(/```\n?[\s\S]*?```/, '').trim();
+            }
+            
+            newSteps.push({ stepTitle, explanation: content, calculation });
+        }
+        
+        return {
+            title,
+            steps: newSteps.length > 0 ? newSteps : steps,
+            finalAnswer
+        };
+    };
+
+    // --- Actions ---
 
     const handleStrictSaveHistory = (sol: Solution, text: string) => {
          const newItem: GuidedHistoryItem = {
@@ -60,41 +109,36 @@ export function Guided() {
         setHistory([newItem, ...history]);
     }
 
-    const deleteSavedItem = (id: string) => {
-        if(window.confirm('Tem certeza que deseja excluir esta solução salva?')) {
-            setSavedSolutions(savedSolutions.filter(item => item.id !== id));
+    const deleteHistoryItem = (id: string) => {
+        if(window.confirm('Tem certeza que deseja excluir esta solução?')) {
+            setHistory(history.filter(item => item.id !== id));
+            setShowActionsModal(null);
         }
     };
 
-    const deleteHistoryItem = (id: string) => {
-        setHistory(history.filter(item => item.id !== id));
-    };
-
-    const loadItem = (item: GuidedHistoryItem) => {
-        setProblemText(item.problem);
-        setSolution(item.solution);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    const handleViewItem = (item: GuidedHistoryItem) => {
+        setViewingItem(item);
+        setShowViewModal(true);
+        setShowActionsModal(null);
     };
 
     const handleEditStart = (item: GuidedHistoryItem) => {
         setEditingItem(item);
-        setEditTitle(item.solution.title);
-        setEditFinalAnswer(item.solution.finalAnswer);
+        setEditMarkdown(solutionToMarkdown(item));
+        setEditPreviewMode('edit');
+        setShowEditModal(true);
+        setShowActionsModal(null);
     };
 
     const handleEditSave = () => {
         if (!editingItem) return;
         
-        const updatedSolution = { 
-            ...editingItem.solution, 
-            title: editTitle,
-            finalAnswer: editFinalAnswer
-        };
-
+        const updatedSolution = markdownToSolution(editMarkdown, editingItem);
         const updatedItem = { ...editingItem, solution: updatedSolution };
 
-        setSavedSolutions(savedSolutions.map(item => item.id === editingItem.id ? updatedItem : item));
+        setHistory(history.map(item => item.id === editingItem.id ? updatedItem : item));
         setEditingItem(null);
+        setShowEditModal(false);
     };
 
     const handleDownload = (item: GuidedHistoryItem, format: 'pdf' | 'doc' | 'md') => {
@@ -208,6 +252,7 @@ export function Guided() {
 
              doc.save(`${filename}.pdf`);
         }
+        setShowActionsModal(null);
     };
 
 
@@ -419,118 +464,242 @@ export function Guided() {
                  </div>
             </div>
 
-            {/* Tabs & Lists */}
+            {/* History List */}
             <div className="w-full bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
-                <div className="flex border-b border-gray-200 dark:border-slate-700">
-                    <button
-                        onClick={() => setActiveTab('history')}
-                        className={`flex-1 py-4 text-center font-medium transition-colors flex items-center justify-center gap-2
-                            ${activeTab === 'history' 
-                                ? 'bg-blue-50 dark:bg-slate-700/50 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400' 
-                                : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700/30'
-                            }`}
-                    >
+                <div className="py-4 px-6 border-b border-gray-200 dark:border-slate-700 bg-blue-50 dark:bg-slate-700/50">
+                    <h3 className="font-medium text-blue-600 dark:text-blue-400 flex items-center gap-2">
                         <History size={18} />
                         Histórico
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('saved')}
-                        className={`flex-1 py-4 text-center font-medium transition-colors flex items-center justify-center gap-2
-                            ${activeTab === 'saved' 
-                                ? 'bg-purple-50 dark:bg-slate-700/50 text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400' 
-                                : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700/30'
-                            }`}
-                    >
-                        <Folder size={18} />
-                        Soluções Salvas
-                    </button>
+                    </h3>
                 </div>
                 
                 <div className="max-h-[500px] overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                     {activeTab === 'history' ? (
-                          history.length === 0 ? <p className="p-4 text-center text-gray-500">Histórico vazio.</p> :
-                          history.map(item => (
-                               <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/50 rounded-lg border border-gray-200 dark:border-slate-700">
-                                   <div className="flex-1 cursor-pointer" onClick={() => loadItem(item)}>
-                                       <div className="font-medium text-gray-800 dark:text-gray-200 truncate">{item.solution.title}</div>
-                                       <div className="text-xs text-gray-500">{new Date(item.date).toLocaleDateString()}</div>
-                                   </div>
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={() => loadItem(item)} title="Exibir" className="p-2 text-blue-600 bg-blue-100 dark:bg-blue-900/30 rounded-full hover:bg-blue-200 transition">
-                                            <Eye size={16} />
-                                        </button>
-                                         <button onClick={() => handleSaveToSaved(item.solution, item.problem)} title="Salvar" className="p-2 text-green-600 bg-green-100 dark:bg-green-900/30 rounded-full hover:bg-green-200 transition">
-                                            <Save size={16} />
-                                        </button>
-                                        <button onClick={() => deleteHistoryItem(item.id)} title="Excluir" className="p-2 text-red-600 bg-red-100 dark:bg-red-900/30 rounded-full hover:bg-red-200 transition">
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                               </div>
-                          ))
+                     {history.length === 0 ? (
+                         <p className="p-4 text-center text-gray-500">Histórico vazio.</p>
                      ) : (
-                          savedSolutions.length === 0 ? <p className="p-4 text-center text-gray-500">Nenhuma solução salva.</p> :
-                          savedSolutions.map(item => (
-                               <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/50 rounded-lg border border-gray-200 dark:border-slate-700 gap-3">
-                                   <div className="flex-1">
-                                       <div className="font-medium text-gray-800 dark:text-gray-200 truncate">{item.solution.title}</div>
-                                       <div className="text-xs text-gray-500">{new Date(item.date).toLocaleDateString()}</div>
-                                   </div>
-                                   <div className="flex flex-wrap items-center gap-2">
-                                        <button onClick={() => loadItem(item)} title="Exibir" className="p-2 text-blue-600 bg-blue-100 dark:bg-blue-900/30 rounded-full hover:bg-blue-200 transition">
-                                            <Eye size={16} />
-                                        </button>
-                                        <button onClick={() => handleEditStart(item)} title="Editar" className="p-2 text-orange-600 bg-orange-100 dark:bg-orange-900/30 rounded-full hover:bg-orange-200 transition">
-                                            <Edit size={16} />
-                                        </button>
-                                        
-                                        <div className="flex gap-1 bg-gray-200 dark:bg-slate-800 rounded-full p-1">
-                                            <button onClick={() => handleDownload(item, 'pdf')} title="PDF" className="p-1.5 text-red-600 hover:bg-white dark:hover:bg-slate-700 rounded-full transition"><FileText size={14}/></button>
-                                            <button onClick={() => handleDownload(item, 'doc')} title="DOC" className="p-1.5 text-blue-600 hover:bg-white dark:hover:bg-slate-700 rounded-full transition"><FileIcon size={14}/></button>
-                                            <button onClick={() => handleDownload(item, 'md')} title="MD" className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-slate-700 rounded-full transition"><FileType size={14}/></button>
-                                        </div>
-
-                                        <button onClick={() => deleteSavedItem(item.id)} title="Excluir" className="p-2 text-red-600 bg-red-100 dark:bg-red-900/30 rounded-full hover:bg-red-200 transition">
-                                            <Trash2 size={16} />
-                                        </button>
-                                   </div>
-                               </div>
-                          ))
+                         history.map(item => (
+                             <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/50 rounded-lg border border-gray-200 dark:border-slate-700">
+                                 <div className="flex-1 cursor-pointer" onClick={() => handleViewItem(item)}>
+                                     <div className="font-medium text-gray-800 dark:text-gray-200 truncate">{item.solution.title}</div>
+                                     <div className="text-xs text-gray-500">{new Date(item.date).toLocaleDateString()}</div>
+                                 </div>
+                                 <button 
+                                     onClick={() => setShowActionsModal(item.id)} 
+                                     className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-full transition"
+                                 >
+                                     <MoreVertical size={18} />
+                                 </button>
+                             </div>
+                         ))
                      )}
                 </div>
             </div>
 
-            {/* Editing Logic/Modal */}
-            {editingItem && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-slate-800 rounded-xl max-w-lg w-full p-6 shadow-2xl">
-                        <div className="flex justify-between items-center mb-4">
-                             <h3 className="text-lg font-bold dark:text-white">Editar Solução</h3>
-                             <button onClick={() => setEditingItem(null)} className="text-gray-500 hover:text-gray-700"><X size={20}/></button>
-                        </div>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Título</label>
-                                <input 
-                                    value={editTitle} 
-                                    onChange={e => setEditTitle(e.target.value)}
-                                    className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Resposta Final</label>
-                                <textarea 
-                                    value={editFinalAnswer}
-                                    onChange={e => setEditFinalAnswer(e.target.value)}
-                                    className="w-full p-2 border rounded-lg h-32 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
-                                />
-                            </div>
-                            <div className="flex justify-end gap-2 mt-4">
-                                <button onClick={() => setEditingItem(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg dark:text-gray-300 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600">Cancelar</button>
-                                <button onClick={handleEditSave} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
-                                    <Check size={16}/> Salvar
+            {/* Actions Modal */}
+            {showActionsModal && (() => {
+                const item = history.find(h => h.id === showActionsModal);
+                if (!item) return null;
+                return (
+                    <div 
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[1px]" 
+                        onClick={() => { setShowActionsModal(null); setShowDownloadMenu(false); }}
+                    >
+                        <div 
+                            className="bg-white dark:bg-slate-800 w-80 rounded-2xl shadow-xl overflow-hidden animate-fade-in" 
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center">
+                                <h4 className="font-bold text-gray-800 dark:text-white">Ações da Solução</h4>
+                                <button onClick={() => { setShowActionsModal(null); setShowDownloadMenu(false); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                                    <X size={20} />
                                 </button>
                             </div>
+                            <div className="p-2">
+                                <button 
+                                    className="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition"
+                                    onClick={() => handleViewItem(item)}
+                                >
+                                    <Eye size={20} className="text-blue-500" /> 
+                                    <span className="font-medium">Exibir</span>
+                                </button>
+                                <button 
+                                    className="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition"
+                                    onClick={() => handleEditStart(item)}
+                                >
+                                    <Edit size={20} className="text-orange-500" />
+                                    <span className="font-medium">Editar</span>
+                                </button>
+                                
+                                {/* Save Options Dropdown */}
+                                <div className="relative">
+                                    <button 
+                                        className="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center justify-between text-gray-700 dark:text-gray-200 transition"
+                                        onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Download size={20} className="text-green-500" />
+                                            <span className="font-medium">Salvar como</span>
+                                        </div>
+                                        <ChevronRight size={18} className={`text-gray-400 transition-transform ${showDownloadMenu ? 'rotate-90' : ''}`} />
+                                    </button>
+                                    
+                                    {showDownloadMenu && (
+                                        <div className="ml-8 mt-1 space-y-1">
+                                            <button 
+                                                onClick={() => handleDownload(item, 'pdf')} 
+                                                className="w-full text-left px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition"
+                                            >
+                                                <FileText size={18} className="text-red-500"/> 
+                                                <span className="text-sm">PDF</span>
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDownload(item, 'doc')} 
+                                                className="w-full text-left px-4 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition"
+                                            >
+                                                <FileIcon size={18} className="text-blue-500"/> 
+                                                <span className="text-sm">DOC</span>
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDownload(item, 'md')} 
+                                                className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-600 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition"
+                                            >
+                                                <FileType size={18} className="text-gray-500"/> 
+                                                <span className="text-sm">Markdown</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <button 
+                                    className="w-full text-left px-4 py-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center gap-3 text-red-600 transition"
+                                    onClick={() => deleteHistoryItem(item.id)}
+                                >
+                                    <Trash2 size={20} />
+                                    <span className="font-medium">Excluir</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* View Solution Modal */}
+            {showViewModal && viewingItem && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-xl overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700">
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-white truncate pr-4">{viewingItem.solution.title}</h2>
+                            <button onClick={() => { setShowViewModal(false); setViewingItem(null); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                            <div className="space-y-8">
+                                {viewingItem.solution.steps.map((step, idx) => (
+                                    <div key={idx} className="relative pl-6 border-l-2 border-blue-100 dark:border-blue-900">
+                                        <span className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900 border-2 border-white dark:border-slate-800"></span>
+                                        <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
+                                            Passo {idx + 1}: {step.stepTitle}
+                                            <button onClick={() => speak(step.stepTitle + '. ' + step.explanation)} className="text-gray-300 dark:text-gray-600 hover:text-blue-500 dark:hover:text-blue-400 transition-colors">
+                                                <Volume2 size={16} />
+                                            </button>
+                                        </h3>
+                                        <div 
+                                            className="prose prose-sm text-gray-600 dark:text-gray-300 max-w-none mb-3"
+                                            dangerouslySetInnerHTML={{ __html: marked.parse(step.explanation) as string }}
+                                        ></div>
+                                        {step.calculation && (
+                                            <div className="bg-gray-50 dark:bg-slate-900 p-3 rounded-lg border border-gray-100 dark:border-slate-700 font-mono text-sm text-gray-700 dark:text-gray-300 overflow-x-auto">
+                                                {step.calculation}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                <div className="mt-8 bg-green-50 dark:bg-green-900/20 p-6 rounded-xl border border-green-100 dark:border-green-900/50">
+                                    <h3 className="text-green-800 dark:text-green-400 font-bold text-lg mb-2">Resposta Final</h3>
+                                    <div className="text-green-900 dark:text-green-200 font-medium flex items-center gap-2">
+                                        {viewingItem.solution.finalAnswer}
+                                        <button onClick={() => speak(viewingItem.solution.finalAnswer)} className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 transition-colors">
+                                            <Volume2 size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Solution Modal with Markdown Editor */}
+            {showEditModal && editingItem && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-xl overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700">
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-white">Editar Solução</h2>
+                            <button onClick={() => { setShowEditModal(false); setEditingItem(null); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        
+                        {/* Tab switcher for Edit/Preview */}
+                        <div className="flex border-b border-gray-200 dark:border-slate-700 px-6">
+                            <button
+                                onClick={() => setEditPreviewMode('edit')}
+                                className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+                                    editPreviewMode === 'edit' 
+                                        ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400' 
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                }`}
+                            >
+                                <Edit size={16} className="inline mr-2" />
+                                Editar
+                            </button>
+                            <button
+                                onClick={() => setEditPreviewMode('preview')}
+                                className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+                                    editPreviewMode === 'preview' 
+                                        ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400' 
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                }`}
+                            >
+                                <Eye size={16} className="inline mr-2" />
+                                Pré-visualizar
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-hidden">
+                            {editPreviewMode === 'edit' ? (
+                                <textarea 
+                                    value={editMarkdown}
+                                    onChange={e => setEditMarkdown(e.target.value)}
+                                    className="w-full h-full p-6 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-200 font-mono text-sm outline-none resize-none"
+                                    placeholder="Edite a solução em Markdown..."
+                                />
+                            ) : (
+                                <div className="h-full overflow-y-auto p-6 custom-scrollbar">
+                                    <div 
+                                        className="prose prose-sm dark:prose-invert max-w-none"
+                                        dangerouslySetInnerHTML={{ __html: marked.parse(editMarkdown) as string }}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-3 p-6 border-t border-gray-100 dark:border-slate-700">
+                            <button 
+                                onClick={() => { setShowEditModal(false); setEditingItem(null); }} 
+                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg dark:text-gray-300 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={handleEditSave} 
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 font-medium"
+                            >
+                                <Check size={16}/> Salvar Alterações
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -547,13 +716,6 @@ export function Guided() {
                                 <Volume2 size={18} />
                             </button>
                         </h2>
-                        <button 
-                            onClick={() => handleSaveToSaved(solution, problemText)}
-                            className="text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors flex items-center gap-1 text-sm font-medium"
-                            title="Salvar nos Favoritos"
-                        >
-                            <Save size={18} /> <span className="hidden sm:inline">Salvar</span>
-                        </button>
                     </div>
 
                     <div className="space-y-8">
