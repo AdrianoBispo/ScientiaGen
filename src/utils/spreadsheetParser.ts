@@ -49,7 +49,7 @@ export async function parseSpreadsheet(file: File): Promise<ParseResult> {
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: 'array', codepage: 65001 }); // UTF-8
 
         // Get the first sheet
         const firstSheetName = workbook.SheetNames[0];

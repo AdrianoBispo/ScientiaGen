@@ -432,7 +432,7 @@ export function Guided() {
     };
 
     return (
-        <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-10">
+        <div className="w-full max-w-6xl mx-auto p-6">
             {/* Manual Creation View */}
             {currentView === 'manual' && (
                 <div className="animate-in fade-in slide-in-from-right-4 duration-300">
@@ -698,39 +698,35 @@ export function Guided() {
             {/* Main View */}
             {currentView === 'main' && (
                 <>
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Solução Guiada</h1>
-                    <p className="text-gray-600 dark:text-gray-300">Envie um problema ou dúvida e receba uma explicação passo a passo.</p>
-                </div>
-            </div>
+            <h2 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white">Solução Guiada</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">Envie um problema ou dúvida e receba uma explicação passo a passo.</p>
 
             {/* Creation Options Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <button
                     onClick={() => setCurrentView('ai')}
-                    className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600 transition-all text-left"
+                    className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
                 >
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                            <Sparkles size={20} className="text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <h3 className="font-semibold text-gray-800 dark:text-white">Resolver com IA</h3>
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                        <Sparkles size={28} className="text-blue-600 dark:text-blue-400" />
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Envie um problema e receba uma solução passo a passo gerada pela IA.</p>
+                    <div>
+                        <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">Resolver com IA</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Envie um problema e receba uma solução passo a passo gerada pela IA.</p>
+                    </div>
                 </button>
 
                 <button
                     onClick={() => setCurrentView('manual')}
-                    className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 hover:shadow-md hover:border-green-300 dark:hover:border-green-600 transition-all text-left"
+                    className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-green-400 dark:hover:border-green-500 hover:shadow-md transition-all group"
                 >
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                            <PenLine size={20} className="text-green-600 dark:text-green-400" />
-                        </div>
-                        <h3 className="font-semibold text-gray-800 dark:text-white">Criar Manualmente</h3>
+                    <div className="p-4 bg-green-50 dark:bg-green-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                        <PenLine size={28} className="text-green-600 dark:text-green-400" />
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Crie sua própria solução passo a passo manualmente.</p>
+                    <div>
+                        <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">Criar Manualmente</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Crie sua própria solução passo a passo manualmente.</p>
+                    </div>
                 </button>
             </div>
 
