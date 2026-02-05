@@ -430,9 +430,11 @@ export function TestMode() {
                     onDeleteSaved={handleDeleteSavedQuiz}
                     onDeleteHistory={handleDeleteHistoryItem}
                     getSavedTitle={(item) => item.title}
-                    getSavedSubtitle={(item) => `${item.questions.length} questões • ${new Date(item.createdAt).toLocaleDateString()}`}
+                    getSavedSubtitle={(item) => `${item.questions.length} questões`}
+                    getSavedDate={(item) => item.createdAt}
                     getHistoryTitle={(item) => item.topic}
-                    getHistorySubtitle={(item) => `${new Date(item.date).toLocaleDateString()} • Score: ${item.score}/${item.total}`}
+                    getHistorySubtitle={(item) => `Pontuação: ${item.score}/${item.total}`}
+                    getHistoryDate={(item) => item.date}
                 />
              </div>
              

@@ -635,8 +635,8 @@ export function Guided() {
             {/* Edit Solution Modal with Markdown Editor */}
             {showEditModal && editingItem && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-800 w-full max-w-5xl max-h-[90vh] rounded-2xl shadow-xl overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-5xl h-[85vh] rounded-2xl shadow-xl overflow-hidden flex flex-col">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700 shrink-0">
                             <h2 className="text-xl font-bold text-gray-800 dark:text-white">Editar Solução</h2>
                             <button onClick={() => { setShowEditModal(false); setEditingItem(null); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                                 <X size={24} />
@@ -644,7 +644,7 @@ export function Guided() {
                         </div>
                         
                         {/* Tab switcher for Edit/Preview */}
-                        <div className="flex border-b border-gray-200 dark:border-slate-700 px-6">
+                        <div className="flex border-b border-gray-200 dark:border-slate-700 px-6 shrink-0">
                             <button
                                 onClick={() => setEditPreviewMode('edit')}
                                 className={`px-4 py-3 font-medium transition-colors border-b-2 ${
@@ -669,25 +669,26 @@ export function Guided() {
                             </button>
                         </div>
                         
-                        <div className="flex-1 overflow-hidden">
+                        <div className="flex-1 min-h-0 overflow-hidden">
                             {editPreviewMode === 'edit' ? (
                                 <textarea 
                                     value={editMarkdown}
                                     onChange={e => setEditMarkdown(e.target.value)}
-                                    className="w-full h-full p-6 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-200 font-mono text-sm outline-none resize-none"
+                                    className="w-full h-full p-6 bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-200 font-mono text-sm leading-relaxed outline-none resize-none overflow-y-auto"
                                     placeholder="Edite a solução em Markdown..."
+                                    spellCheck={false}
                                 />
                             ) : (
-                                <div className="h-full overflow-y-auto p-6 custom-scrollbar">
+                                <div className="h-full overflow-y-auto p-6 bg-white dark:bg-slate-900 custom-scrollbar">
                                     <div 
-                                        className="prose prose-sm dark:prose-invert max-w-none"
+                                        className="markdown-preview"
                                         dangerouslySetInnerHTML={{ __html: marked.parse(editMarkdown) as string }}
                                     />
                                 </div>
                             )}
                         </div>
 
-                        <div className="flex justify-end gap-3 p-6 border-t border-gray-100 dark:border-slate-700">
+                        <div className="flex justify-end gap-3 p-6 border-t border-gray-100 dark:border-slate-700 shrink-0">
                             <button 
                                 onClick={() => { setShowEditModal(false); setEditingItem(null); }} 
                                 className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg dark:text-gray-300 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600"

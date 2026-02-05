@@ -364,9 +364,11 @@ export function Match() {
                         onDeleteSaved={handleDeleteSavedGame}
                         onDeleteHistory={handleDeleteHistoryItem}
                         getSavedTitle={(item) => item.title}
-                        getSavedSubtitle={(item) => `${item.cards.length} pares • ${new Date(item.createdAt).toLocaleDateString()}`}
+                        getSavedSubtitle={(item) => `${item.cards.length} pares`}
+                        getSavedDate={(item) => item.createdAt}
                         getHistoryTitle={(item) => item.topic}
-                        getHistorySubtitle={(item) => `${new Date(item.date).toLocaleDateString()} • ${item.timeTaken}s`}
+                        getHistorySubtitle={(item) => `Tempo: ${item.timeTaken}s`}
+                        getHistoryDate={(item) => item.date}
                     />
                  </div>
                  

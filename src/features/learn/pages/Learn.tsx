@@ -335,7 +335,10 @@ export function Learn() {
                     onDeleteSaved={handleDeleteSavedQuiz}
                     onDeleteHistory={handleDeleteHistoryItem}
                     getSavedTitle={(item) => item.title}
-                    getSavedSubtitle={(item) => `${item.questions.length} questões • ${new Date(item.createdAt).toLocaleDateString()}`}
+                    getSavedSubtitle={(item) => `${item.questions.length} questões`}
+                    getSavedDate={(item) => item.createdAt}
+                    getHistoryTitle={(item) => item.topic}
+                    getHistoryDate={(item) => item.date}
                 />
              </div>
              

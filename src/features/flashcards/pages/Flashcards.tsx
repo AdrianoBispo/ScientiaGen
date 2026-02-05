@@ -236,9 +236,10 @@ export function Flashcards() {
         onDeleteHistory={(id) => setHistory(history.filter(h => h.id !== id))}
         getSavedTitle={(set) => set.title}
         getSavedSubtitle={(set) => `${set.cards.length} cartões`}
+        getSavedDate={(set) => set.createdAt}
         getHistoryTitle={(item) => item.title}
-        getHistorySubtitle={(item) => new Date(item.date).toLocaleString()}
-        getHistoryScore={(item) => item.score !== undefined && item.total ? `${item.score}/${item.total}` : ''}
+        getHistorySubtitle={(item) => item.score !== undefined && item.total ? `Pontuação: ${item.score}/${item.total}` : ''}
+        getHistoryDate={(item) => item.date}
       />
     </div>
   );
