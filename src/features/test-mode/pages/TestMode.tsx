@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { generateTestQuestions, TestQuestion } from '../../../services/ai';
-import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, AlertCircle } from 'lucide-react';
+import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, AlertCircle, Brain, ArrowLeft, Sparkles, Pencil } from 'lucide-react';
 import { useLocalStorage } from '../../../hooks/useLocalStorage';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 
@@ -23,6 +23,7 @@ export function TestMode() {
     // Config State
     const [topic, setTopic] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [currentView, setCurrentView] = useState<'setup' | 'ai' | 'manual'>('setup');
     
     // Game State
     const [gameStatus, setGameStatus] = useState<'setup' | 'playing' | 'finished'>('setup');
@@ -31,6 +32,12 @@ export function TestMode() {
     const [score, setScore] = useState(0);
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
+    
+    // Manual creation state
+    const [manualTitle, setManualTitle] = useState('');
+    const [manualQuestions, setManualQuestions] = useState<TestQuestion[]>([
+        { id: crypto.randomUUID(), question: '', options: ['', '', '', ''], correctAnswer: '', explanation: '' }
+    ]);
     
     // Storage
     const [history, setHistory] = useLocalStorage<TestHistoryItem[]>('testHistory', []);
@@ -146,6 +153,196 @@ export function TestMode() {
     const handleDeleteHistoryItem = (id: string) => {
         setHistory(history.filter(h => h.id !== id));
     };
+
+    const handleSaveManualQuiz = () => {
+        if (!manualTitle.trim()) return;
+        const validQuestions = manualQuestions.filter(q => 
+            q.question.trim() && 
+            q.correctAnswer.trim() && 
+            q.options.filter(o => o.trim()).length >= 2
+        );
+        if (validQuestions.length === 0) return;
+
+        const newQuiz: SavedTestQuiz = {
+            id: crypto.randomUUID(),
+            title: manualTitle,
+            questions: validQuestions.map(q => ({
+                ...q,
+                id: crypto.randomUUID(),
+                options: q.options.filter(o => o.trim())
+            })),
+            createdAt: new Date().toISOString()
+        };
+
+        setSavedQuizzes([...savedQuizzes, newQuiz]);
+        setManualTitle('');
+        setManualQuestions([
+            { id: crypto.randomUUID(), question: '', options: ['', '', '', ''], correctAnswer: '', explanation: '' }
+        ]);
+        setCurrentView('setup');
+    };
+
+    const renderAIView = () => (
+        <div className="w-full max-w-4xl mx-auto p-6">
+            <button 
+                onClick={() => setCurrentView('setup')} 
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white mb-6 transition"
+            >
+                <ArrowLeft size={20} /> Voltar
+            </button>
+
+            <div className="flex flex-col h-full">
+                <h1 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white text-center">Gerar com IA</h1>
+                <p className="text-gray-500 dark:text-gray-400 mb-8 text-center">Use o formulário abaixo para enviar um tópico e receber questões de teste geradas pela IA.</p>
+
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 mb-8">
+                    <label className="block text-sm font-medium mb-4 text-left text-gray-700 dark:text-gray-300">Tópico do Teste</label>
+                    <textarea 
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        className="w-full p-4 border border-gray-300 dark:border-slate-600 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none h-24 mb-4"
+                        placeholder="Ex: Biologia Celular, História do Brasil..."
+                    />
+
+                    <button 
+                        onClick={handleStartGame}
+                        disabled={!topic || isLoading}
+                        className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {isLoading && <RefreshCw className="animate-spin" size={20} />}
+                        <Sparkles size={20} />
+                        {isLoading ? 'Gerando...' : 'Gerar Teste'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderManualCreationView = () => (
+        <div className="w-full max-w-4xl mx-auto p-6">
+            <button 
+                onClick={() => setCurrentView('setup')} 
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white mb-6 transition"
+            >
+                <ArrowLeft size={20} /> Voltar
+            </button>
+
+            <div className="flex flex-col h-full">
+                <h1 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white text-center">Criar Teste Manualmente</h1>
+                <p className="text-gray-500 dark:text-gray-400 mb-8 text-center">Crie questões de múltipla escolha personalizadas.</p>
+
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 mb-8">
+                    <input 
+                        type="text" 
+                        value={manualTitle}
+                        onChange={(e) => setManualTitle(e.target.value)}
+                        className="w-full p-4 mb-6 border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none font-medium text-lg"
+                        placeholder="Título do Teste (Ex: Biologia Celular)"
+                    />
+
+                    <div className="space-y-6">
+                        {manualQuestions.map((q, idx) => (
+                            <div key={q.id} className="bg-gray-50 dark:bg-slate-700/50 p-4 rounded-xl border border-gray-100 dark:border-slate-600 relative group animate-fade-in">
+                                <button 
+                                    onClick={() => {
+                                        if (manualQuestions.length > 1) {
+                                            setManualQuestions(manualQuestions.filter((_, i) => i !== idx));
+                                        }
+                                    }}
+                                    className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition opacity-0 group-hover:opacity-100"
+                                    disabled={manualQuestions.length === 1}
+                                >
+                                    <X size={16} />
+                                </button>
+                                
+                                <div className="space-y-4 pr-6">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-xs font-bold uppercase text-gray-500">Questão {idx + 1}</span>
+                                    </div>
+                                    
+                                    <textarea 
+                                        className="w-full p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition resize-none min-h-[60px]"
+                                        value={q.question}
+                                        onChange={(e) => {
+                                            const newQuestions = [...manualQuestions];
+                                            newQuestions[idx] = { ...q, question: e.target.value };
+                                            setManualQuestions(newQuestions);
+                                        }}
+                                        placeholder="Digite a pergunta"
+                                    />
+                                    
+                                    <div>
+                                        <label className="block text-xs text-gray-500 mb-2">Opções (marque a correta)</label>
+                                        <div className="space-y-2">
+                                            {q.options.map((opt, optIdx) => (
+                                                <div key={optIdx} className="flex items-center gap-2">
+                                                    <input 
+                                                        type="radio"
+                                                        name={`correct-manual-${idx}`}
+                                                        checked={q.correctAnswer === opt && opt !== ''}
+                                                        onChange={() => {
+                                                            const newQuestions = [...manualQuestions];
+                                                            newQuestions[idx] = { ...q, correctAnswer: opt };
+                                                            setManualQuestions(newQuestions);
+                                                        }}
+                                                        className="w-4 h-4 text-blue-600"
+                                                    />
+                                                    <input 
+                                                        type="text"
+                                                        value={opt}
+                                                        onChange={(e) => {
+                                                            const newQuestions = [...manualQuestions];
+                                                            const wasCorrect = newQuestions[idx].correctAnswer === newQuestions[idx].options[optIdx];
+                                                            newQuestions[idx].options[optIdx] = e.target.value;
+                                                            if (wasCorrect) {
+                                                                newQuestions[idx].correctAnswer = e.target.value;
+                                                            }
+                                                            setManualQuestions(newQuestions);
+                                                        }}
+                                                        className="flex-1 p-2 text-sm bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg dark:text-white outline-none focus:border-blue-500"
+                                                        placeholder={`Opção ${optIdx + 1}`}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    <textarea 
+                                        className="w-full p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-600 dark:text-gray-300 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none min-h-[50px] transition"
+                                        value={q.explanation || ''}
+                                        onChange={(e) => {
+                                            const newQuestions = [...manualQuestions];
+                                            newQuestions[idx] = { ...q, explanation: e.target.value };
+                                            setManualQuestions(newQuestions);
+                                        }}
+                                        placeholder="Explicação da resposta correta (opcional)"
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-6 flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-100 dark:border-slate-700">
+                        <button 
+                            onClick={() => setManualQuestions([...manualQuestions, 
+                                { id: crypto.randomUUID(), question: '', options: ['', '', '', ''], correctAnswer: '', explanation: '' }
+                            ])}
+                            className="flex items-center justify-center gap-2 px-6 py-3 border border-blue-600 text-blue-600 dark:text-blue-400 rounded-xl font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition group"
+                        >
+                            <Plus size={20} className="group-hover:scale-110 transition-transform"/> Adicionar Questão
+                        </button>
+                        <button 
+                            onClick={handleSaveManualQuiz}
+                            disabled={!manualTitle.trim() || !manualQuestions.some(q => q.question.trim() && q.correctAnswer.trim() && q.options.filter(o => o.trim()).length >= 2)}
+                            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-200 dark:shadow-none"
+                        >
+                            Salvar Teste
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 
     const renderEditQuizModal = () => {
         if (!editingQuiz) return null;
@@ -395,33 +592,49 @@ export function TestMode() {
     }
 
     // SETUP VIEW
+    if (currentView === 'ai') {
+        return renderAIView();
+    }
+
+    if (currentView === 'manual') {
+        return renderManualCreationView();
+    }
+
     return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 max-w-lg mx-auto text-center">
-             <div className="space-y-4">
-                 <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Modo Teste</h1>
-                 <p className="text-gray-600 dark:text-gray-300">Simulado com tempo e questões de múltipla escolha.</p>
-             </div>
+        <div className="w-full max-w-6xl mx-auto p-6">
+            <h2 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white">Modo Teste</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">Escolha como deseja criar seus testes.</p>
+            
+            {/* Create Buttons */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <button 
+                    onClick={() => setCurrentView('ai')}
+                    className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
+                >
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                        <Sparkles size={28} className="text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">Gerar com IA</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Use o formulário para enviar um tópico e receber questões de teste geradas pela IA.</p>
+                    </div>
+                </button>
+                
+                <button 
+                    onClick={() => setCurrentView('manual')}
+                    className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-green-400 dark:hover:border-green-500 hover:shadow-md transition-all group"
+                >
+                    <div className="p-4 bg-green-50 dark:bg-green-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                        <Pencil size={28} className="text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">Criar Manualmente</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Crie seus próprios testes de múltipla escolha manualmente.</p>
+                    </div>
+                </button>
+            </div>
 
-             <div className="w-full bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700">
-                 <label className="block text-sm font-medium mb-4 text-left text-gray-700 dark:text-gray-300">Assunto do Simulado</label>
-                 <textarea 
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                    className="w-full p-4 border border-gray-300 dark:border-slate-600 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none h-32 mb-6"
-                    placeholder="Ex: Biologia Celular, História do Brasil..."
-                 />
-
-                 <button 
-                    onClick={handleStartGame}
-                    disabled={!topic || isLoading}
-                    className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
-                 >
-                     {isLoading && <RefreshCw className="animate-spin" size={20} />}
-                     {isLoading ? 'Gerando...' : 'Iniciar Simulado'}
-                 </button>
-             </div>
-
-             <div className="w-full max-w-lg mx-auto">
+             <div className="w-full">
                 <ExerciseLists<SavedTestQuiz, TestHistoryItem>
                     savedItems={savedQuizzes}
                     historyItems={history}

@@ -3,10 +3,11 @@ import { useLocalStorage } from '../../../hooks/useLocalStorage';
 import { Card } from '../components/Card';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { generateFlashcards, FlashcardData } from '../../../services/ai';
+import { parseSpreadsheet, getAcceptString, isValidSpreadsheetFile } from '../../../utils/spreadsheetParser';
 import { 
   Plus, Brain, Loader2, Folder, MoreVertical, 
   Volume2, X, ChevronLeft, ChevronRight, CheckSquare, 
-  Square, Eye, Pencil, Trash2, ArrowLeft 
+  Square, Eye, Pencil, Trash2, ArrowLeft, FileSpreadsheet, Upload 
 } from 'lucide-react';
 
 interface FlashcardSet {
@@ -65,7 +66,47 @@ export function Flashcards() {
   const [manualSetName, setManualSetName] = useState('');
   const [manualCards, setManualCards] = useState<FlashcardData[]>([{ term: '', definition: '' }]);
 
+  // Spreadsheet Import State
+  const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Handlers
+  const handleSpreadsheetImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!isValidSpreadsheetFile(file)) {
+      setImportError('Formato de arquivo não suportado. Use .xlsx, .xls, .csv, .ods ou .xlsm');
+      return;
+    }
+
+    setIsImporting(true);
+    setImportError('');
+
+    try {
+      const result = await parseSpreadsheet(file);
+      
+      if (result.success && result.data.length > 0) {
+        // Pre-fill the manual creation form with imported data
+        setManualSetName(file.name.replace(/\.[^/.]+$/, '')); // Remove extension
+        setManualCards(result.data.map(row => ({ term: row.term, definition: row.definition })));
+        setCurrentView('manual');
+      } else {
+        setImportError(result.error || 'Erro ao importar arquivo.');
+      }
+    } catch (error) {
+      console.error('Error importing spreadsheet:', error);
+      setImportError('Erro ao processar o arquivo.');
+    } finally {
+      setIsImporting(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const handleGenerate = async () => {
     if (!genTopic.trim()) return;
     setIsGenerating(true);
@@ -198,7 +239,7 @@ export function Flashcards() {
       
       {/* Create Buttons */}
       <h2 className="text-3xl font-bold mb-8 text-gray-800 dark:text-white">Criar Cartões</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <button 
           onClick={() => setCurrentView('generator')}
           className="p-6 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-gray-300 dark:border-slate-600 flex flex-col items-center justify-center gap-3 text-gray-600 dark:text-gray-300 hover:border-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors group"
@@ -218,7 +259,35 @@ export function Flashcards() {
           </div>
           <span className="font-medium text-lg">Criar Manualmente</span>
         </button>
+
+        <label 
+           className="p-6 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-gray-300 dark:border-slate-600 flex flex-col items-center justify-center gap-3 text-gray-600 dark:text-gray-300 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors group cursor-pointer"
+        >
+          <input 
+            type="file" 
+            ref={fileInputRef}
+            accept={getAcceptString()}
+            onChange={handleSpreadsheetImport}
+            className="hidden"
+            disabled={isImporting}
+          />
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-full group-hover:scale-110 transition-transform">
+            {isImporting ? (
+              <Loader2 size={32} className="text-blue-600 dark:text-blue-400 animate-spin" />
+            ) : (
+              <FileSpreadsheet size={32} className="text-blue-600 dark:text-blue-400" />
+            )}
+          </div>
+          <span className="font-medium text-lg">{isImporting ? 'Importando...' : 'Importar Planilha'}</span>
+          <span className="text-xs text-gray-400">.xlsx, .xls, .csv, .ods, .xlsm</span>
+        </label>
       </div>
+
+      {importError && (
+        <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm">
+          {importError}
+        </div>
+      )}
       
       <ExerciseLists
         savedItems={sets}

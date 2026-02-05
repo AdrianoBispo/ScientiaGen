@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateFlashcards, FlashcardData } from '../../../services/ai';
-import { Play, Settings, RefreshCw, Timer, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus } from 'lucide-react';
+import { parseSpreadsheet, getAcceptString, isValidSpreadsheetFile } from '../../../utils/spreadsheetParser';
+import { Play, Settings, RefreshCw, Timer, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, Brain, ArrowLeft, FileSpreadsheet, Loader2, Sparkles, Pencil } from 'lucide-react';
 import { useLocalStorage } from '../../../hooks/useLocalStorage';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 
@@ -35,6 +36,11 @@ export function Match() {
     const [topic, setTopic] = useState('');
     const [pairCount, setPairCount] = useState(6);
     const [timeLimit, setTimeLimit] = useState(120); // seconds
+    const [currentView, setCurrentView] = useState<'setup' | 'ai' | 'manual'>('setup');
+    
+    // Manual creation state
+    const [manualTitle, setManualTitle] = useState('');
+    const [manualCards, setManualCards] = useState<FlashcardData[]>([{ term: '', definition: '' }]);
     
     // Game Runtime State
     const [gameState, setGameState] = useState<GameState>('setup');
@@ -49,6 +55,48 @@ export function Match() {
     const [editingGame, setEditingGame] = useState<SavedMatchGame | null>(null);
 
     const timerRef = useRef<number | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Spreadsheet Import State
+    const [isImporting, setIsImporting] = useState(false);
+    const [importError, setImportError] = useState('');
+
+    const handleSpreadsheetImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (!isValidSpreadsheetFile(file)) {
+            setImportError('Formato de arquivo não suportado. Use .xlsx, .xls, .csv, .ods ou .xlsm');
+            return;
+        }
+
+        setIsImporting(true);
+        setImportError('');
+
+        try {
+            const result = await parseSpreadsheet(file);
+            
+            if (result.success && result.data.length >= 3) {
+                // Pre-fill the manual creation form with imported data
+                setManualTitle(file.name.replace(/\.[^/.]+$/, '')); // Remove extension
+                setManualCards(result.data.map(row => ({ term: row.term, definition: row.definition })));
+                setCurrentView('manual');
+            } else if (result.success && result.data.length < 3) {
+                setImportError('O arquivo deve conter pelo menos 3 pares válidos.');
+            } else {
+                setImportError(result.error || 'Erro ao importar arquivo.');
+            }
+        } catch (error) {
+            console.error('Error importing spreadsheet:', error);
+            setImportError('Erro ao processar o arquivo.');
+        } finally {
+            setIsImporting(false);
+            // Reset file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
 
     const handleSaveHistory = () => {
         const timeUsed = timeLimit - timeLeft;
@@ -100,6 +148,174 @@ export function Match() {
         setEditingGame(null);
     };
 
+    const handleSaveManualGame = () => {
+        if (!manualTitle.trim()) return;
+        const validCards = manualCards.filter(c => c.term.trim() && c.definition.trim());
+        if (validCards.length < 3) {
+            setErrorMsg('Adicione pelo menos 3 pares válidos.');
+            return;
+        }
+
+        const newGame: SavedMatchGame = {
+            id: crypto.randomUUID(),
+            title: manualTitle,
+            cards: validCards,
+            createdAt: new Date().toISOString()
+        };
+
+        setSavedGames([...savedGames, newGame]);
+        setManualTitle('');
+        setManualCards([{ term: '', definition: '' }]);
+        setCurrentView('setup');
+    };
+
+    const renderAIView = () => (
+        <div className="w-full max-w-4xl mx-auto p-6">
+            <button 
+                onClick={() => setCurrentView('setup')} 
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white mb-6 transition"
+            >
+                <ArrowLeft size={20} /> Voltar
+            </button>
+
+            <div className="flex flex-col h-full">
+                <h1 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white text-center">Gerar com IA</h1>
+                <p className="text-gray-500 dark:text-gray-400 mb-8 text-center">Use o formulário abaixo para gerar pares de termos e definições com IA.</p>
+
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 mb-8">
+                    <label className="block text-sm font-medium mb-4 text-left text-gray-700 dark:text-gray-300">Tópico do Jogo</label>
+                    <input 
+                        type="text"
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        className="w-full p-4 border border-gray-300 dark:border-slate-600 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none mb-4"
+                        placeholder="Ex: Países e Capitais"
+                    />
+                    
+                    <div className="flex gap-4 mb-4">
+                        <div className="flex-1">
+                            <label className="block text-xs font-medium mb-2 text-left text-gray-500">Pares</label>
+                            <input 
+                                type="number" 
+                                min="3" 
+                                max="12"
+                                value={pairCount}
+                                onChange={(e) => setPairCount(parseInt(e.target.value))}
+                                className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-center dark:text-white"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-xs font-medium mb-2 text-left text-gray-500">Tempo (s)</label>
+                            <input 
+                                type="number" 
+                                min="30" 
+                                max="300"
+                                value={timeLimit}
+                                onChange={(e) => setTimeLimit(parseInt(e.target.value))}
+                                className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-center dark:text-white"
+                            />
+                        </div>
+                    </div>
+                    
+                    {errorMsg && <p className="text-red-500 text-sm mb-4">{errorMsg}</p>}
+
+                    <button 
+                        onClick={startGame}
+                        disabled={!topic || gameState === 'loading'}
+                        className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        <Sparkles size={20} />
+                        {gameState === 'loading' ? 'Gerando...' : 'Gerar Jogo'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderManualCreationView = () => (
+        <div className="w-full max-w-4xl mx-auto p-6">
+            <button 
+                onClick={() => setCurrentView('setup')} 
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white mb-6 transition"
+            >
+                <ArrowLeft size={20} /> Voltar
+            </button>
+
+            <div className="flex flex-col h-full">
+                <h1 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white text-center">Criar Jogo Manualmente</h1>
+                <p className="text-gray-500 dark:text-gray-400 mb-8 text-center">Crie seus próprios pares de termos e definições. Mínimo de 3 pares.</p>
+
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 mb-8">
+                    <input 
+                        type="text" 
+                        value={manualTitle}
+                        onChange={(e) => setManualTitle(e.target.value)}
+                        className="w-full p-4 mb-6 border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none font-medium text-lg"
+                        placeholder="Nome do Jogo (Ex: Países e Capitais)"
+                    />
+
+                    <div className="space-y-4">
+                        {manualCards.map((card, idx) => (
+                            <div key={idx} className="bg-gray-50 dark:bg-slate-700/50 p-4 rounded-xl border border-gray-100 dark:border-slate-600 relative group animate-fade-in">
+                                <button 
+                                    onClick={() => {
+                                        if (manualCards.length > 1) {
+                                            setManualCards(manualCards.filter((_, i) => i !== idx));
+                                        }
+                                    }}
+                                    className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition opacity-0 group-hover:opacity-100"
+                                    disabled={manualCards.length === 1}
+                                >
+                                    <X size={16} />
+                                </button>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pr-6">
+                                    <input 
+                                        className="w-full p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                                        value={card.term}
+                                        onChange={(e) => {
+                                            const newCards = [...manualCards];
+                                            newCards[idx] = { ...card, term: e.target.value };
+                                            setManualCards(newCards);
+                                        }}
+                                        placeholder="Termo"
+                                    />
+                                    <input 
+                                        className="w-full p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-600 dark:text-gray-300 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                                        value={card.definition}
+                                        onChange={(e) => {
+                                            const newCards = [...manualCards];
+                                            newCards[idx] = { ...card, definition: e.target.value };
+                                            setManualCards(newCards);
+                                        }}
+                                        placeholder="Definição"
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {errorMsg && <p className="text-red-500 text-sm mt-4">{errorMsg}</p>}
+
+                    <div className="mt-6 flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-100 dark:border-slate-700">
+                        <button 
+                            onClick={() => setManualCards([...manualCards, { term: '', definition: '' }])}
+                            className="flex items-center justify-center gap-2 px-6 py-3 border border-blue-600 text-blue-600 dark:text-blue-400 rounded-xl font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition group"
+                        >
+                            <Plus size={20} className="group-hover:scale-110 transition-transform"/> Adicionar Par
+                        </button>
+                        <button 
+                            onClick={handleSaveManualGame}
+                            disabled={!manualTitle.trim() || manualCards.filter(c => c.term.trim() && c.definition.trim()).length < 3}
+                            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-200 dark:shadow-none"
+                        >
+                            Salvar Jogo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
     // Initial default values for config
     useEffect(() => {
         setPairCount(6);
@@ -149,7 +365,7 @@ export function Match() {
         const terms: MatchCard[] = cards.map((c, i) => ({
             id: `term-${i}`,
             text: c.term,
-            type: 'term',
+            type: 'term' as const,
             matched: false,
             originalPairId: `pair-${i}`
         })).sort(() => Math.random() - 0.5);
@@ -157,7 +373,7 @@ export function Match() {
         const definitions: MatchCard[] = cards.map((c, i) => ({
             id: `def-${i}`,
             text: c.definition,
-            type: 'definition',
+            type: 'definition' as const,
             matched: false,
             originalPairId: `pair-${i}`
         })).sort(() => Math.random() - 0.5);
@@ -302,60 +518,78 @@ export function Match() {
 
     // Render Setup Screen
     if (gameState === 'setup') {
+        if (currentView === 'ai') {
+            return renderAIView();
+        }
+
+        if (currentView === 'manual') {
+            return renderManualCreationView();
+        }
+
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 max-w-lg mx-auto text-center">
-                 <div className="space-y-4">
-                     <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Jogo da Memória</h1>
-                     <p className="text-gray-600 dark:text-gray-300">Encontre os pares correspondentes antes que o tempo acabe.</p>
+            <div className="w-full max-w-6xl mx-auto p-6">
+                 <h2 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white">Jogo da Memória</h2>
+                 <p className="text-gray-500 dark:text-gray-400 mb-8">Escolha como deseja criar seu jogo.</p>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <button 
+                        onClick={() => setCurrentView('ai')}
+                        className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
+                    >
+                        <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                            <Sparkles size={28} className="text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">Gerar com IA</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Use o formulário para gerar pares de termos e definições com IA.</p>
+                        </div>
+                    </button>
+
+                    <button 
+                        onClick={() => setCurrentView('manual')}
+                        className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-green-400 dark:hover:border-green-500 hover:shadow-md transition-all group"
+                    >
+                        <div className="p-4 bg-green-50 dark:bg-green-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                            <Pencil size={28} className="text-green-600 dark:text-green-400" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">Criar Manualmente</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Crie seus próprios pares de termo e definição.</p>
+                        </div>
+                    </button>
+
+                    <label 
+                        className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md transition-all group cursor-pointer md:col-span-2 lg:col-span-1"
+                    >
+                        <input 
+                            type="file" 
+                            ref={fileInputRef}
+                            accept={getAcceptString()}
+                            onChange={handleSpreadsheetImport}
+                            className="hidden"
+                            disabled={isImporting}
+                        />
+                        <div className="p-4 bg-purple-50 dark:bg-purple-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                            {isImporting ? (
+                                <Loader2 size={28} className="text-purple-600 dark:text-purple-400 animate-spin" />
+                            ) : (
+                                <FileSpreadsheet size={28} className="text-purple-600 dark:text-purple-400" />
+                            )}
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">{isImporting ? 'Importando...' : 'Importar Planilha'}</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Importe dados de .xlsx, .xls, .csv, .ods ou .xlsm.</p>
+                        </div>
+                    </label>
                  </div>
 
-                 <div className="w-full bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700">
-                     <label className="block text-sm font-medium mb-4 text-left text-gray-700 dark:text-gray-300">Tema do Jogo</label>
-                     <input 
-                        type="text"
-                        value={topic}
-                        onChange={(e) => setTopic(e.target.value)}
-                        className="w-full p-4 border border-gray-300 dark:border-slate-600 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none mb-6"
-                        placeholder="Ex: Países e Capitais"
-                     />
-                     
-                     <div className="flex gap-4 mb-6">
-                        <div className="flex-1">
-                            <label className="block text-xs font-medium mb-2 text-left text-gray-500">Pares</label>
-                            <input 
-                                type="number" 
-                                min="3" 
-                                max="12"
-                                value={pairCount}
-                                onChange={(e) => setPairCount(parseInt(e.target.value))}
-                                className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-center"
-                            />
-                        </div>
-                        <div className="flex-1">
-                            <label className="block text-xs font-medium mb-2 text-left text-gray-500">Tempo (s)</label>
-                            <input 
-                                type="number" 
-                                min="30" 
-                                max="300"
-                                value={timeLimit}
-                                onChange={(e) => setTimeLimit(parseInt(e.target.value))}
-                                className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-center"
-                            />
-                        </div>
-                     </div>
-                     
-                     {errorMsg && <p className="text-red-500 text-sm mb-4">{errorMsg}</p>}
+                 {importError && (
+                    <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm">
+                        {importError}
+                    </div>
+                 )}
 
-                     <button 
-                        onClick={startGame}
-                        disabled={!topic || gameState === 'loading'}
-                        className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                     >
-                         {gameState === 'loading' ? 'Gerando...' : 'Iniciar Jogo'}
-                     </button>
-                 </div>
-
-                 <div className="w-full max-w-lg mx-auto">
+                 <div className="w-full">
                     <ExerciseLists<SavedMatchGame, MatchHistoryItem>
                         savedItems={savedGames}
                         historyItems={history}

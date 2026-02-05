@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { generateMixedQuiz, MistoQuestion, QuestionType } from '../../../services/ai';
-import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus } from 'lucide-react';
+import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, Brain, ArrowLeft, Sparkles, Pencil } from 'lucide-react';
 import { useLocalStorage } from '../../../hooks/useLocalStorage';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 
@@ -28,6 +28,13 @@ export function Mixed() {
     const [score, setScore] = useState(0);
     const [feedback, setFeedback] = useState<{ isCorrect: boolean, feedback: string } | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [currentView, setCurrentView] = useState<'setup' | 'ai' | 'manual'>('setup');
+    
+    // Manual creation state
+    const [manualTitle, setManualTitle] = useState('');
+    const [manualQuestions, setManualQuestions] = useState<MistoQuestion[]>([
+        { question: '', answer: '', type: QuestionType.OPEN_ENDED }
+    ]);
     
     const [history, setHistory] = useLocalStorage<MixedHistoryItem[]>('mixedHistory', []);
     const [savedQuizzes, setSavedQuizzes] = useLocalStorage<SavedMixedQuiz[]>('savedMixedQuizzes', []);
@@ -136,6 +143,212 @@ export function Mixed() {
     const handleDeleteHistoryItem = (id: string) => {
         setHistory(history.filter(h => h.id !== id));
     };
+
+    const handleSaveManualQuiz = () => {
+        if (!manualTitle.trim()) return;
+        const validQuestions = manualQuestions.filter(q => q.question.trim() && q.answer.trim());
+        if (validQuestions.length === 0) return;
+
+        const newQuiz: SavedMixedQuiz = {
+            id: crypto.randomUUID(),
+            title: manualTitle,
+            questions: validQuestions.map(q => ({
+                ...q,
+                options: q.type === QuestionType.MULTIPLE_CHOICE ? (q.options?.filter(o => o.trim()) || []) : undefined
+            })),
+            createdAt: new Date().toISOString()
+        };
+
+        setSavedQuizzes([...savedQuizzes, newQuiz]);
+        setManualTitle('');
+        setManualQuestions([{ question: '', answer: '', type: QuestionType.OPEN_ENDED }]);
+        setCurrentView('setup');
+    };
+
+    const renderAIView = () => (
+        <div className="w-full max-w-4xl mx-auto p-6">
+            <button 
+                onClick={() => setCurrentView('setup')} 
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white mb-6 transition"
+            >
+                <ArrowLeft size={20} /> Voltar
+            </button>
+
+            <div className="flex flex-col h-full">
+                <h1 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white text-center">Gerar com IA</h1>
+                <p className="text-gray-500 dark:text-gray-400 mb-8 text-center">Use o formulário abaixo para enviar um tópico e receber questões mistas geradas pela IA.</p>
+
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 mb-8">
+                    <label className="block text-sm font-medium mb-4 text-left text-gray-700 dark:text-gray-300">Tópico do Quiz</label>
+                    <textarea 
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        className="w-full p-4 border border-gray-300 dark:border-slate-600 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none h-24 mb-4"
+                        placeholder="Ex: Geografia do Brasil, História da Arte..."
+                    />
+
+                    <button 
+                        onClick={startQuiz}
+                        disabled={!topic || isLoading}
+                        className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        {isLoading && <RefreshCw className="animate-spin" size={20} />}
+                        <Sparkles size={20} />
+                        {isLoading ? 'Gerando...' : 'Gerar Quiz'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderManualCreationView = () => (
+        <div className="w-full max-w-4xl mx-auto p-6">
+            <button 
+                onClick={() => setCurrentView('setup')} 
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white mb-6 transition"
+            >
+                <ArrowLeft size={20} /> Voltar
+            </button>
+
+            <div className="flex flex-col h-full">
+                <h1 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white text-center">Criar Quiz Misto Manualmente</h1>
+                <p className="text-gray-500 dark:text-gray-400 mb-8 text-center">Crie questões de diferentes tipos: múltipla escolha, preencher ou abertas.</p>
+
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 mb-8">
+                    <input 
+                        type="text" 
+                        value={manualTitle}
+                        onChange={(e) => setManualTitle(e.target.value)}
+                        className="w-full p-4 mb-6 border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none font-medium text-lg"
+                        placeholder="Título do Quiz (Ex: Geografia do Brasil)"
+                    />
+
+                    <div className="space-y-6">
+                        {manualQuestions.map((q, idx) => (
+                            <div key={idx} className="bg-gray-50 dark:bg-slate-700/50 p-4 rounded-xl border border-gray-100 dark:border-slate-600 relative group animate-fade-in">
+                                <button 
+                                    onClick={() => {
+                                        if (manualQuestions.length > 1) {
+                                            setManualQuestions(manualQuestions.filter((_, i) => i !== idx));
+                                        }
+                                    }}
+                                    className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition opacity-0 group-hover:opacity-100"
+                                    disabled={manualQuestions.length === 1}
+                                >
+                                    <X size={16} />
+                                </button>
+                                
+                                <div className="space-y-4 pr-6">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-bold uppercase text-gray-500">Questão {idx + 1}</span>
+                                        <select 
+                                            value={q.type}
+                                            onChange={(e) => {
+                                                const newQuestions = [...manualQuestions];
+                                                const newType = e.target.value as QuestionType;
+                                                newQuestions[idx] = { 
+                                                    ...q, 
+                                                    type: newType,
+                                                    options: newType === QuestionType.MULTIPLE_CHOICE ? ['', '', '', ''] : undefined
+                                                };
+                                                setManualQuestions(newQuestions);
+                                            }}
+                                            className="text-xs p-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg dark:text-white"
+                                        >
+                                            <option value={QuestionType.OPEN_ENDED}>Aberta</option>
+                                            <option value={QuestionType.FILL_IN_BLANK}>Preencher</option>
+                                            <option value={QuestionType.MULTIPLE_CHOICE}>Múltipla Escolha</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <textarea 
+                                        className="w-full p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-800 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition resize-none min-h-[60px]"
+                                        value={q.question}
+                                        onChange={(e) => {
+                                            const newQuestions = [...manualQuestions];
+                                            newQuestions[idx] = { ...q, question: e.target.value };
+                                            setManualQuestions(newQuestions);
+                                        }}
+                                        placeholder={q.type === QuestionType.FILL_IN_BLANK ? "Use ___ para indicar o espaço em branco" : "Digite a pergunta"}
+                                    />
+                                    
+                                    {q.type === QuestionType.MULTIPLE_CHOICE && (
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-2">Opções</label>
+                                            <div className="space-y-2">
+                                                {(q.options || ['', '', '', '']).map((opt, optIdx) => (
+                                                    <div key={optIdx} className="flex items-center gap-2">
+                                                        <input 
+                                                            type="radio"
+                                                            name={`correct-mixed-${idx}`}
+                                                            checked={q.answer === opt && opt !== ''}
+                                                            onChange={() => {
+                                                                const newQuestions = [...manualQuestions];
+                                                                newQuestions[idx] = { ...q, answer: opt };
+                                                                setManualQuestions(newQuestions);
+                                                            }}
+                                                            className="w-4 h-4 text-blue-600"
+                                                        />
+                                                        <input 
+                                                            type="text"
+                                                            value={opt}
+                                                            onChange={(e) => {
+                                                                const newQuestions = [...manualQuestions];
+                                                                const newOptions = [...(newQuestions[idx].options || [])];
+                                                                const wasCorrect = newQuestions[idx].answer === newOptions[optIdx];
+                                                                newOptions[optIdx] = e.target.value;
+                                                                if (wasCorrect) {
+                                                                    newQuestions[idx].answer = e.target.value;
+                                                                }
+                                                                newQuestions[idx].options = newOptions;
+                                                                setManualQuestions(newQuestions);
+                                                            }}
+                                                            className="flex-1 p-2 text-sm bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg dark:text-white outline-none focus:border-blue-500"
+                                                            placeholder={`Opção ${optIdx + 1}`}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {q.type !== QuestionType.MULTIPLE_CHOICE && (
+                                        <input 
+                                            type="text"
+                                            className="w-full p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-600 dark:text-gray-300 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                                            value={q.answer}
+                                            onChange={(e) => {
+                                                const newQuestions = [...manualQuestions];
+                                                newQuestions[idx] = { ...q, answer: e.target.value };
+                                                setManualQuestions(newQuestions);
+                                            }}
+                                            placeholder="Resposta correta"
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-6 flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-100 dark:border-slate-700">
+                        <button 
+                            onClick={() => setManualQuestions([...manualQuestions, { question: '', answer: '', type: QuestionType.OPEN_ENDED }])}
+                            className="flex items-center justify-center gap-2 px-6 py-3 border border-blue-600 text-blue-600 dark:text-blue-400 rounded-xl font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition group"
+                        >
+                            <Plus size={20} className="group-hover:scale-110 transition-transform"/> Adicionar Questão
+                        </button>
+                        <button 
+                            onClick={handleSaveManualQuiz}
+                            disabled={!manualTitle.trim() || !manualQuestions.some(q => q.question.trim() && q.answer.trim())}
+                            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-200 dark:shadow-none"
+                        >
+                            Salvar Quiz
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 
     const renderEditQuizModal = () => {
         if (!editingQuiz) return null;
@@ -388,33 +601,49 @@ export function Mixed() {
     }
 
     // SETUP VIEW
+    if (currentView === 'ai') {
+        return renderAIView();
+    }
+
+    if (currentView === 'manual') {
+        return renderManualCreationView();
+    }
+
     return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 max-w-lg mx-auto text-center">
-             <div className="space-y-4">
-                 <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Quiz Misto</h1>
-                 <p className="text-gray-600 dark:text-gray-300">Questões de múltipla escolha, preencher lacunas e abertas.</p>
-             </div>
+        <div className="w-full max-w-6xl mx-auto p-6">
+            <h2 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white">Quiz Misto</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">Escolha como deseja criar seu quiz.</p>
+            
+            {/* Create Buttons */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <button 
+                    onClick={() => setCurrentView('ai')}
+                    className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
+                >
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                        <Sparkles size={28} className="text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">Gerar com IA</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Use o formulário para enviar um tópico e receber questões mistas geradas pela IA.</p>
+                    </div>
+                </button>
+                
+                <button 
+                    onClick={() => setCurrentView('manual')}
+                    className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-green-400 dark:hover:border-green-500 hover:shadow-md transition-all group"
+                >
+                    <div className="p-4 bg-green-50 dark:bg-green-900/30 rounded-xl group-hover:scale-110 transition-transform">
+                        <Pencil size={28} className="text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">Criar Manualmente</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Crie seu próprio quiz com diferentes tipos de questões.</p>
+                    </div>
+                </button>
+            </div>
 
-             <div className="w-full bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700">
-                 <label className="block text-sm font-medium mb-4 text-left text-gray-700 dark:text-gray-300">Tópico do Quiz</label>
-                 <textarea 
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                    className="w-full p-4 border border-gray-300 dark:border-slate-600 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none h-32 mb-6"
-                    placeholder="Ex: Geografia do Brasil, História da Arte..."
-                 />
-
-                 <button 
-                    onClick={startQuiz}
-                    disabled={!topic || isLoading}
-                    className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
-                 >
-                     {isLoading && <RefreshCw className="animate-spin" size={20} />}
-                     {isLoading ? 'Gerando...' : 'Iniciar Quiz'}
-                 </button>
-             </div>
-
-             <div className="w-full max-w-lg mx-auto">
+             <div className="w-full">
                 <ExerciseLists<SavedMixedQuiz, MixedHistoryItem>
                     savedItems={savedQuizzes}
                     historyItems={history}
