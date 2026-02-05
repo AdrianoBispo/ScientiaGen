@@ -154,8 +154,4 @@ Contribuições são bem-vindas! Sinta-se à vontade para abrir issues e pull re
 
 ## 📄 Licença
 
-Este projeto está sob a licença MIT
-
-## 📄 Licença
-
 Este projeto está licenciado sob a Licença Apache, Versão 2.0. Veja o `SPDX-License-Identifier: Apache-2.0` nos arquivos de código-fonte para mais detalhes.
