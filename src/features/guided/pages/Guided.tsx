@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Folder, X, RefreshCw, Volume2, Save, Trash2, History } from 'lucide-react';
+import { Camera, Folder, X, RefreshCw, Volume2, Save, Trash2, History, Eye, Edit, Download, FileText, FileType, Check, File as FileIcon } from 'lucide-react';
 import { solveProblem, Solution } from '../../../services/ai';
 import { marked } from 'marked';
 import { useLocalStorage } from '../../../hooks/useLocalStorage';
+import { jsPDF } from 'jspdf';
 
 interface GuidedHistoryItem {
     id: string;
@@ -18,39 +19,198 @@ export function Guided() {
     const [solution, setSolution] = useState<Solution | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [showCamera, setShowCamera] = useState(false);
-    const [showHistory, setShowHistory] = useState(false);
+    // const [showHistory, setShowHistory] = useState(false); // Removed separate history toggle
     
+    // Tab state
+    const [activeTab, setActiveTab] = useState<'history' | 'saved'>('history');
+
     const [history, setHistory] = useLocalStorage<GuidedHistoryItem[]>('guidedHistory', []);
+    const [savedSolutions, setSavedSolutions] = useLocalStorage<GuidedHistoryItem[]>('guidedSavedSolutions', []);
+
+    // Editing State
+    const [editingItem, setEditingItem] = useState<GuidedHistoryItem | null>(null);
+    const [editTitle, setEditTitle] = useState('');
+    const [editFinalAnswer, setEditFinalAnswer] = useState('');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
 
-    const handleSaveToHistory = () => {
-        if (!solution) return;
-        
+    // --- Actions ---
+
+    const handleSaveToSaved = (sol: Solution, text: string) => {
         const newItem: GuidedHistoryItem = {
             id: crypto.randomUUID(),
             date: new Date().toISOString(),
-            problem: problemText || 'Problema com arquivo anexado',
-            solution: solution
+            problem: text || 'Problema',
+            solution: sol
         };
-
-        setHistory([newItem, ...history]);
-        alert('Solução salva no histórico!');
+        setSavedSolutions([newItem, ...savedSolutions]);
+        alert('Solução salva nos itens salvos!');
     };
 
-    const handleDeleteHistoryItem = (id: string) => {
+    const handleStrictSaveHistory = (sol: Solution, text: string) => {
+         const newItem: GuidedHistoryItem = {
+            id: crypto.randomUUID(),
+            date: new Date().toISOString(),
+            problem: text || 'Problema',
+            solution: sol
+        };
+        setHistory([newItem, ...history]);
+    }
+
+    const deleteSavedItem = (id: string) => {
+        if(window.confirm('Tem certeza que deseja excluir esta solução salva?')) {
+            setSavedSolutions(savedSolutions.filter(item => item.id !== id));
+        }
+    };
+
+    const deleteHistoryItem = (id: string) => {
         setHistory(history.filter(item => item.id !== id));
     };
 
-    const loadHistoryItem = (item: GuidedHistoryItem) => {
+    const loadItem = (item: GuidedHistoryItem) => {
         setProblemText(item.problem);
         setSolution(item.solution);
-        setShowHistory(false);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+
+    const handleEditStart = (item: GuidedHistoryItem) => {
+        setEditingItem(item);
+        setEditTitle(item.solution.title);
+        setEditFinalAnswer(item.solution.finalAnswer);
+    };
+
+    const handleEditSave = () => {
+        if (!editingItem) return;
+        
+        const updatedSolution = { 
+            ...editingItem.solution, 
+            title: editTitle,
+            finalAnswer: editFinalAnswer
+        };
+
+        const updatedItem = { ...editingItem, solution: updatedSolution };
+
+        setSavedSolutions(savedSolutions.map(item => item.id === editingItem.id ? updatedItem : item));
+        setEditingItem(null);
+    };
+
+    const handleDownload = (item: GuidedHistoryItem, format: 'pdf' | 'doc' | 'md') => {
+        const solution = item.solution;
+        const date = new Date(item.date).toISOString().split('T')[0];
+        const safeTitle = solution.title.replace(/[^a-z0-9]/gi, '_').toLowerCase().substring(0, 50);
+        const filename = `solucao_${safeTitle}_${date}`;
+
+        if (format === 'md') {
+            let content = `# ${solution.title}\n\n`;
+            content += `**Data:** ${new Date(item.date).toLocaleDateString()}\n\n`;
+            content += `**Problema:** ${item.problem}\n\n---\n\n`;
+            
+            solution.steps.forEach((step, i) => {
+                content += `### Passo ${i + 1}: ${step.stepTitle}\n\n`;
+                content += `${step.explanation}\n\n`;
+                if (step.calculation) content += `\`\`\`\n${step.calculation}\n\`\`\`\n\n`;
+            });
+            content += `## Resposta Final\n${solution.finalAnswer}`;
+            
+            const blob = new Blob([content], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${filename}.md`;
+            a.click();
+        } else if (format === 'doc') {
+             let content = `
+                <html>
+                <head><meta charset="UTF-8"></head>
+                <body>
+                    <h1>${solution.title}</h1>
+                    <p><strong>Data:</strong> ${new Date(item.date).toLocaleDateString()}</p>
+                    <p><strong>Problema:</strong> ${item.problem}</p>
+                    <hr/>
+             `;
+             solution.steps.forEach((step, i) => {
+                content += `<h3>Passo ${i + 1}: ${step.stepTitle}</h3>`;
+                // Use a simple parser or just raw if marked is synchronous
+                try {
+                     content += `<div>${marked.parse(step.explanation)}</div>`;
+                } catch (e) {
+                     content += `<p>${step.explanation}</p>`;
+                }
+                if (step.calculation) content += `<pre style="background:#f0f0f0;padding:10px;">${step.calculation}</pre>`;
+            });
+            content += `<h2>Resposta Final</h2><p>${solution.finalAnswer}</p></body></html>`;
+
+            const blob = new Blob([content], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${filename}.doc`;
+            a.click();
+        } else if (format === 'pdf') {
+             const doc = new jsPDF();
+             const pageWidth = doc.internal.pageSize.getWidth();
+             const margin = 15;
+             const maxLineWidth = pageWidth - (margin * 2);
+             
+             let y = 20;
+             
+             // Title
+             doc.setFontSize(16);
+             doc.setFont("helvetica", "bold");
+             const titleLines = doc.splitTextToSize(solution.title, maxLineWidth);
+             doc.text(titleLines, margin, y);
+             y += (titleLines.length * 7) + 10;
+
+             // Problem
+             doc.setFontSize(10);
+             doc.setFont("helvetica", "italic");
+             doc.text(`Problema: ${item.problem.substring(0, 100)}${item.problem.length > 100 ? '...' : ''}`, margin, y);
+             y += 10;
+             
+             doc.setFont("helvetica", "normal");
+             doc.setFontSize(12);
+
+             solution.steps.forEach((step, i) => {
+                  if (y > 270) { doc.addPage(); y = 20; }
+                  
+                  doc.setFont("helvetica", "bold");
+                  doc.text(`Passo ${i+1}: ${step.stepTitle}`, margin, y);
+                  y += 7;
+                  
+                  doc.setFont("helvetica", "normal");
+                  // Basic cleanup of markdown symbols for PDF text
+                  const cleanExpl = step.explanation.replace(/[*_#`]/g, '');
+                  const explLines = doc.splitTextToSize(cleanExpl, maxLineWidth);
+                  doc.text(explLines, margin, y);
+                  y += (explLines.length * 5) + 5;
+                  
+                  if (step.calculation) {
+                      if (y > 270) { doc.addPage(); y = 20; }
+                      doc.setFont("courier", "normal");
+                      const calcLines = doc.splitTextToSize(step.calculation, maxLineWidth - 10);
+                      doc.text(calcLines, margin + 5, y);
+                      doc.setFont("helvetica", "normal");
+                      y += (calcLines.length * 5) + 10;
+                  }
+                  y += 5;
+             });
+             
+             if (y > 270) { doc.addPage(); y = 20; }
+             doc.setFont("helvetica", "bold");
+             doc.text("Resposta Final:", margin, y);
+             y += 7;
+             doc.setFont("helvetica", "normal");
+             const finalLines = doc.splitTextToSize(solution.finalAnswer, maxLineWidth);
+             doc.text(finalLines, margin, y);
+
+             doc.save(`${filename}.pdf`);
+        }
+    };
+
+
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -141,6 +301,7 @@ export function Guided() {
                 attachedFile?.mimeType
             );
             setSolution(result);
+            handleStrictSaveHistory(result, problemText);
         } catch (err) {
             console.error(err);
             setError("Ocorreu um erro ao gerar a solução. Tente novamente.");
@@ -171,40 +332,7 @@ export function Guided() {
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Solução Guiada</h1>
                     <p className="text-gray-600 dark:text-gray-300">Envie um problema ou dúvida e receba uma explicação passo a passo.</p>
                 </div>
-                <button 
-                    onClick={() => setShowHistory(!showHistory)}
-                    className={`p-2 rounded-lg transition-colors ${showHistory ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800'}`}
-                    title="Histórico"
-                >
-                    <History size={24} />
-                </button>
             </div>
-
-            {showHistory && (
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 p-4 animate-in slide-in-from-top-4">
-                    <h3 className="font-bold text-gray-800 dark:text-white mb-4">Histórico de Soluções</h3>
-                    {history.length === 0 ? (
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Nenhuma solução salva ainda.</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {history.map(item => (
-                                <div key={item.id} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg border border-transparent hover:border-gray-200 dark:hover:border-slate-600 transition-all">
-                                    <div className="flex-1 cursor-pointer" onClick={() => loadHistoryItem(item)}>
-                                        <div className="font-medium text-gray-800 dark:text-gray-200 truncate">{item.solution.title}</div>
-                                        <div className="text-xs text-gray-500">{new Date(item.date).toLocaleDateString()} - {item.problem.substring(0, 30)}...</div>
-                                    </div>
-                                    <button 
-                                        onClick={() => handleDeleteHistoryItem(item.id)}
-                                        className="p-2 text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg ml-2"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            )}
             
             <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
                  <div className="mb-4">
@@ -291,6 +419,124 @@ export function Guided() {
                  </div>
             </div>
 
+            {/* Tabs & Lists */}
+            <div className="w-full bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+                <div className="flex border-b border-gray-200 dark:border-slate-700">
+                    <button
+                        onClick={() => setActiveTab('history')}
+                        className={`flex-1 py-4 text-center font-medium transition-colors flex items-center justify-center gap-2
+                            ${activeTab === 'history' 
+                                ? 'bg-blue-50 dark:bg-slate-700/50 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400' 
+                                : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700/30'
+                            }`}
+                    >
+                        <History size={18} />
+                        Histórico
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('saved')}
+                        className={`flex-1 py-4 text-center font-medium transition-colors flex items-center justify-center gap-2
+                            ${activeTab === 'saved' 
+                                ? 'bg-purple-50 dark:bg-slate-700/50 text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400' 
+                                : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700/30'
+                            }`}
+                    >
+                        <Folder size={18} />
+                        Soluções Salvas
+                    </button>
+                </div>
+                
+                <div className="max-h-[500px] overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                     {activeTab === 'history' ? (
+                          history.length === 0 ? <p className="p-4 text-center text-gray-500">Histórico vazio.</p> :
+                          history.map(item => (
+                               <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/50 rounded-lg border border-gray-200 dark:border-slate-700">
+                                   <div className="flex-1 cursor-pointer" onClick={() => loadItem(item)}>
+                                       <div className="font-medium text-gray-800 dark:text-gray-200 truncate">{item.solution.title}</div>
+                                       <div className="text-xs text-gray-500">{new Date(item.date).toLocaleDateString()}</div>
+                                   </div>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => loadItem(item)} title="Exibir" className="p-2 text-blue-600 bg-blue-100 dark:bg-blue-900/30 rounded-full hover:bg-blue-200 transition">
+                                            <Eye size={16} />
+                                        </button>
+                                         <button onClick={() => handleSaveToSaved(item.solution, item.problem)} title="Salvar" className="p-2 text-green-600 bg-green-100 dark:bg-green-900/30 rounded-full hover:bg-green-200 transition">
+                                            <Save size={16} />
+                                        </button>
+                                        <button onClick={() => deleteHistoryItem(item.id)} title="Excluir" className="p-2 text-red-600 bg-red-100 dark:bg-red-900/30 rounded-full hover:bg-red-200 transition">
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                               </div>
+                          ))
+                     ) : (
+                          savedSolutions.length === 0 ? <p className="p-4 text-center text-gray-500">Nenhuma solução salva.</p> :
+                          savedSolutions.map(item => (
+                               <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/50 rounded-lg border border-gray-200 dark:border-slate-700 gap-3">
+                                   <div className="flex-1">
+                                       <div className="font-medium text-gray-800 dark:text-gray-200 truncate">{item.solution.title}</div>
+                                       <div className="text-xs text-gray-500">{new Date(item.date).toLocaleDateString()}</div>
+                                   </div>
+                                   <div className="flex flex-wrap items-center gap-2">
+                                        <button onClick={() => loadItem(item)} title="Exibir" className="p-2 text-blue-600 bg-blue-100 dark:bg-blue-900/30 rounded-full hover:bg-blue-200 transition">
+                                            <Eye size={16} />
+                                        </button>
+                                        <button onClick={() => handleEditStart(item)} title="Editar" className="p-2 text-orange-600 bg-orange-100 dark:bg-orange-900/30 rounded-full hover:bg-orange-200 transition">
+                                            <Edit size={16} />
+                                        </button>
+                                        
+                                        <div className="flex gap-1 bg-gray-200 dark:bg-slate-800 rounded-full p-1">
+                                            <button onClick={() => handleDownload(item, 'pdf')} title="PDF" className="p-1.5 text-red-600 hover:bg-white dark:hover:bg-slate-700 rounded-full transition"><FileText size={14}/></button>
+                                            <button onClick={() => handleDownload(item, 'doc')} title="DOC" className="p-1.5 text-blue-600 hover:bg-white dark:hover:bg-slate-700 rounded-full transition"><FileIcon size={14}/></button>
+                                            <button onClick={() => handleDownload(item, 'md')} title="MD" className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-slate-700 rounded-full transition"><FileType size={14}/></button>
+                                        </div>
+
+                                        <button onClick={() => deleteSavedItem(item.id)} title="Excluir" className="p-2 text-red-600 bg-red-100 dark:bg-red-900/30 rounded-full hover:bg-red-200 transition">
+                                            <Trash2 size={16} />
+                                        </button>
+                                   </div>
+                               </div>
+                          ))
+                     )}
+                </div>
+            </div>
+
+            {/* Editing Logic/Modal */}
+            {editingItem && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-800 rounded-xl max-w-lg w-full p-6 shadow-2xl">
+                        <div className="flex justify-between items-center mb-4">
+                             <h3 className="text-lg font-bold dark:text-white">Editar Solução</h3>
+                             <button onClick={() => setEditingItem(null)} className="text-gray-500 hover:text-gray-700"><X size={20}/></button>
+                        </div>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Título</label>
+                                <input 
+                                    value={editTitle} 
+                                    onChange={e => setEditTitle(e.target.value)}
+                                    className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1 dark:text-gray-300">Resposta Final</label>
+                                <textarea 
+                                    value={editFinalAnswer}
+                                    onChange={e => setEditFinalAnswer(e.target.value)}
+                                    className="w-full p-2 border rounded-lg h-32 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2 mt-4">
+                                <button onClick={() => setEditingItem(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg dark:text-gray-300 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600">Cancelar</button>
+                                <button onClick={handleEditSave} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+                                    <Check size={16}/> Salvar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
             {/* Solution Display */}
             {solution && (
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -302,9 +548,9 @@ export function Guided() {
                             </button>
                         </h2>
                         <button 
-                            onClick={handleSaveToHistory}
+                            onClick={() => handleSaveToSaved(solution, problemText)}
                             className="text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors flex items-center gap-1 text-sm font-medium"
-                            title="Salvar no Histórico"
+                            title="Salvar nos Favoritos"
                         >
                             <Save size={18} /> <span className="hidden sm:inline">Salvar</span>
                         </button>

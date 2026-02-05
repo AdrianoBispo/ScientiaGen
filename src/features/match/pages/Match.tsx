@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateFlashcards, FlashcardData } from '../../../services/ai';
-import { Play, Settings, RefreshCw, Timer, CheckCircle, XCircle, History, Trash2, Save } from 'lucide-react';
+import { Play, Settings, RefreshCw, Timer, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus } from 'lucide-react';
 import { useLocalStorage } from '../../../hooks/useLocalStorage';
+import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 
 type GameState = 'setup' | 'loading' | 'playing' | 'finished';
 
@@ -22,6 +23,13 @@ interface MatchHistoryItem {
     completed: boolean;
 }
 
+interface SavedMatchGame {
+    id: string;
+    title: string;
+    cards: FlashcardData[];
+    createdAt: string;
+}
+
 export function Match() {
     // Game Configuration State
     const [topic, setTopic] = useState('');
@@ -35,9 +43,10 @@ export function Match() {
     const [gameItems, setGameItems] = useState<{terms: MatchCard[], definitions: MatchCard[]}>({ terms: [], definitions: [] });
     const [draggedItem, setDraggedItem] = useState<MatchCard | null>(null);
     const [errorMsg, setErrorMsg] = useState('');
-    const [showHistory, setShowHistory] = useState(false);
-
+    
     const [history, setHistory] = useLocalStorage<MatchHistoryItem[]>('matchHistory', []);
+    const [savedGames, setSavedGames] = useLocalStorage<SavedMatchGame[]>('savedMatchGames', []);
+    const [editingGame, setEditingGame] = useState<SavedMatchGame | null>(null);
 
     const timerRef = useRef<number | null>(null);
 
@@ -52,13 +61,44 @@ export function Match() {
             completed: matches === pairCount
         };
         setHistory([newItem, ...history]);
-        alert('Resultado salvo!');
+    };
+
+    const handleSaveGame = (cardsToSave: FlashcardData[]) => {
+        const title = prompt("Digite um nome para este jogo:", topic);
+        if(!title) return;
+
+        const newGame: SavedMatchGame = {
+             id: crypto.randomUUID(),
+             title: title,
+             cards: cardsToSave,
+             createdAt: new Date().toISOString()
+        };
+        setSavedGames([newGame, ...savedGames]);
+        alert('Jogo salvo com sucesso!');
+    };
+
+    const handleDeleteSavedGame = (id: string) => {
+        setSavedGames(savedGames.filter(g => g.id !== id));
     };
 
     const handleDeleteHistoryItem = (id: string) => {
         setHistory(history.filter(item => item.id !== id));
     };
 
+    const handlePlaySavedGame = (game: SavedMatchGame) => {
+        setTopic(game.title);
+        prepareGame(game.cards);
+    };
+
+    const handleEditGame = (game: SavedMatchGame) => {
+        setEditingGame(game);
+    };
+    
+    const saveEditedGame = () => {
+        if (!editingGame || !editingGame.title.trim()) return;
+        setSavedGames(savedGames.map(g => g.id === editingGame.id ? editingGame : g));
+        setEditingGame(null);
+    };
 
     // Initial default values for config
     useEffect(() => {
@@ -131,32 +171,30 @@ export function Match() {
     const finishGame = () => {
         setGameState('finished');
         if (timerRef.current) clearInterval(timerRef.current);
+        handleSaveHistory();
     };
 
     const handleDragStart = (item: MatchCard) => {
         setDraggedItem(item);
     };
 
-    const handleDrop = (targetItem: MatchCard) => {
+    const handleDrop = (target: MatchCard) => {
         if (!draggedItem) return;
         
-        // Cannot match same type (term-term or def-def)
-        if (draggedItem.type === targetItem.type) return;
+        // Cannot match two terms or two definitions
+        if (draggedItem.type === target.type) return;
 
-        // Check Match
-        if (draggedItem.originalPairId === targetItem.originalPairId) {
-            // Success
-            const newTerms = gameItems.terms.map(item => 
-                (item.id === draggedItem.id || item.id === targetItem.id) ? { ...item, matched: true } : item
-            );
-            const newDefs = gameItems.definitions.map(item => 
-                (item.id === draggedItem.id || item.id === targetItem.id) ? { ...item, matched: true } : item
-            );
-            
-            setGameItems({ terms: newTerms, definitions: newDefs });
-            setMatches(m => {
-                const newMatches = m + 1;
-                if (newMatches >= gameItems.terms.length) finishGame();
+        if (draggedItem.originalPairId === target.originalPairId) {
+            // Match found!
+            setGameItems(prev => ({
+                terms: prev.terms.map(t => t.id === draggedItem.id || t.id === target.id ? { ...t, matched: true } : t),
+                definitions: prev.definitions.map(d => d.id === draggedItem.id || d.id === target.id ? { ...d, matched: true } : d)
+            }));
+            setMatches(prev => {
+                const newMatches = prev + 1;
+                if (newMatches === gameItems.terms.length) {
+                    setTimeout(finishGame, 500);
+                }
                 return newMatches;
             });
         }
@@ -164,104 +202,175 @@ export function Match() {
         setDraggedItem(null);
     };
 
-    // Render Setup Screen
-    if (gameState === 'setup') {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center w-full max-w-2xl mx-auto">
-                <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Modo Combinar</h1>
-                <p className="text-gray-600 dark:text-gray-300 mb-8">Arraste os termos da esquerda para as definições corretas na direita.</p>
+    const renderEditGameModal = () => {
+        if (!editingGame) return null;
 
-                <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 w-full max-w-lg">
-                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-gray-800 dark:text-white">
-                        <Settings className="text-blue-600 dark:text-blue-400" /> Configuração do Jogo
-                    </h2>
-                    
-                    <div className="space-y-4 text-left">
+        return (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
+                    <div className="p-6 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center">
+                        <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                            <Edit size={20} className="text-blue-500" />
+                            Editar Jogo
+                        </h3>
+                        <button 
+                            onClick={() => setEditingGame(null)}
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition"
+                        >
+                            <X size={20} className="text-gray-500" />
+                        </button>
+                    </div>
+
+                    <div className="p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
                         <div>
-                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Tópico de Estudo</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Título do Jogo
+                            </label>
                             <input 
-                                value={topic}
-                                onChange={(e) => setTopic(e.target.value)}
-                                className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                placeholder="Ex: Revolução Francesa, Tabela Periódica..."
+                                type="text"
+                                value={editingGame.title}
+                                onChange={(e) => setEditingGame({...editingGame, title: e.target.value})}
+                                className="w-full p-3 bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Pares de Cartões</label>
-                                <select 
-                                    value={pairCount}
-                                    onChange={(e) => setPairCount(Number(e.target.value))}
-                                    className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                >
-                                    <option value={4}>4 Pares</option>
-                                    <option value={6}>6 Pares</option>
-                                    <option value={8}>8 Pares</option>
-                                    <option value={10}>10 Pares</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Tempo Limite</label>
-                                <select 
-                                    value={timeLimit}
-                                    onChange={(e) => setTimeLimit(Number(e.target.value))}
-                                    className="w-full p-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                                >
-                                    <option value={60}>1 Minuto</option>
-                                    <option value={120}>2 Minutos</option>
-                                    <option value={180}>3 Minutos</option>
-                                    <option value={300}>5 Minutos</option>
-                                </select>
-                            </div>
+                        <div className="space-y-4">
+                            <h4 className="font-medium text-gray-700 dark:text-gray-300">Pares (Termo - Definição)</h4>
+                            {editingGame.cards.map((card, idx) => (
+                                <div key={idx} className="p-4 bg-gray-50 dark:bg-slate-800 rounded-xl relative group">
+                                     <button 
+                                        onClick={() => {
+                                            const newCards = editingGame.cards.filter((_, i) => i !== idx);
+                                            setEditingGame({...editingGame, cards: newCards});
+                                        }}
+                                        className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Termo</label>
+                                            <input 
+                                                type="text"
+                                                className="w-full p-2 bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 rounded-lg text-sm text-gray-600 dark:text-gray-300 outline-none focus:border-blue-500"
+                                                value={card.term}
+                                                onChange={(e) => {
+                                                    const newCards = [...editingGame.cards];
+                                                    newCards[idx] = { ...card, term: e.target.value };
+                                                    setEditingGame({...editingGame, cards: newCards});
+                                                }}
+                                                placeholder="Termo"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Definição</label>
+                                            <textarea 
+                                                className="w-full p-2 bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 rounded-lg text-sm text-gray-600 dark:text-gray-300 outline-none focus:border-blue-500 resize-none min-h-[40px]"
+                                                value={card.definition}
+                                                onChange={(e) => {
+                                                    const newCards = [...editingGame.cards];
+                                                    newCards[idx] = { ...card, definition: e.target.value };
+                                                    setEditingGame({...editingGame, cards: newCards});
+                                                }}
+                                                placeholder="Definição"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
+                    </div>
 
-                        {errorMsg && <p className="text-red-500 text-sm">{errorMsg}</p>}
-
+                    <div className="p-6 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700 flex justify-between gap-4">
                         <button 
-                            onClick={startGame}
-                            disabled={!topic}
-                            className="w-full py-3 mt-4 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                            onClick={() => setEditingGame({...editingGame, cards: [...editingGame.cards, { term: '', definition: '' }]})}
+                            className="px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
                         >
-                            <Play size={20} fill="currentColor" /> Iniciar Jogo
+                            <Plus size={18} className="inline mr-1" /> Adicionar Novo Par
+                        </button>
+                        <button 
+                            onClick={saveEditedGame}
+                            className="flex-1 max-w-xs py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+                        >
+                            Salvar Alterações
                         </button>
                     </div>
                 </div>
+            </div>
+        );
+    };
 
-                <button 
-                    onClick={() => setShowHistory(!showHistory)} 
-                    className="mt-6 flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
-                >
-                    <History size={20} /> {showHistory ? 'Ocultar Histórico' : 'Ver Histórico'}
-                </button>
-
-                {showHistory && (
-                 <div className="w-full max-w-lg bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 mt-4 text-left animate-in slide-in-from-top-4">
-                     <h3 className="font-bold text-gray-800 dark:text-white mb-4">Histórico de Partidas</h3>
-                     {history.length === 0 ? (
-                         <p className="text-gray-500 dark:text-gray-400 text-sm">Nenhum histórico salvo.</p>
-                     ) : (
-                         <div className="space-y-3">
-                             {history.map(item => (
-                                 <div key={item.id} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg border border-transparent hover:border-gray-200 dark:hover:border-slate-600 transition-all">
-                                     <div>
-                                         <div className="font-medium text-gray-800 dark:text-gray-200">{item.topic}</div>
-                                         <div className="text-xs text-gray-500">
-                                            {new Date(item.date).toLocaleDateString()} • {item.completed ? 'Vitória' : 'Derrota'} • {item.timeTaken}s
-                                         </div>
-                                     </div>
-                                     <button 
-                                         onClick={() => handleDeleteHistoryItem(item.id)}
-                                         className="p-2 text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                                     >
-                                         <Trash2 size={16} />
-                                     </button>
-                                 </div>
-                             ))}
-                         </div>
-                     )}
+    // Render Setup Screen
+    if (gameState === 'setup') {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 max-w-lg mx-auto text-center">
+                 <div className="space-y-4">
+                     <h1 className="text-3xl font-bold text-gray-800 dark:text-white">Jogo da Memória</h1>
+                     <p className="text-gray-600 dark:text-gray-300">Encontre os pares correspondentes antes que o tempo acabe.</p>
                  </div>
-             )}
+
+                 <div className="w-full bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700">
+                     <label className="block text-sm font-medium mb-4 text-left text-gray-700 dark:text-gray-300">Tema do Jogo</label>
+                     <input 
+                        type="text"
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        className="w-full p-4 border border-gray-300 dark:border-slate-600 rounded-xl bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none mb-6"
+                        placeholder="Ex: Países e Capitais"
+                     />
+                     
+                     <div className="flex gap-4 mb-6">
+                        <div className="flex-1">
+                            <label className="block text-xs font-medium mb-2 text-left text-gray-500">Pares</label>
+                            <input 
+                                type="number" 
+                                min="3" 
+                                max="12"
+                                value={pairCount}
+                                onChange={(e) => setPairCount(parseInt(e.target.value))}
+                                className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-center"
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-xs font-medium mb-2 text-left text-gray-500">Tempo (s)</label>
+                            <input 
+                                type="number" 
+                                min="30" 
+                                max="300"
+                                value={timeLimit}
+                                onChange={(e) => setTimeLimit(parseInt(e.target.value))}
+                                className="w-full p-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-900 text-center"
+                            />
+                        </div>
+                     </div>
+                     
+                     {errorMsg && <p className="text-red-500 text-sm mb-4">{errorMsg}</p>}
+
+                     <button 
+                        onClick={startGame}
+                        disabled={!topic || gameState === 'loading'}
+                        className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
+                         {gameState === 'loading' ? 'Gerando...' : 'Iniciar Jogo'}
+                     </button>
+                 </div>
+
+                 <div className="w-full max-w-lg mx-auto">
+                    <ExerciseLists<SavedMatchGame, MatchHistoryItem>
+                        savedItems={savedGames}
+                        historyItems={history}
+                        onPlaySaved={handlePlaySavedGame}
+                        onEditSaved={handleEditGame}
+                        onDeleteSaved={handleDeleteSavedGame}
+                        onDeleteHistory={handleDeleteHistoryItem}
+                        getSavedTitle={(item) => item.title}
+                        getSavedSubtitle={(item) => `${item.cards.length} pares • ${new Date(item.createdAt).toLocaleDateString()}`}
+                        getHistoryTitle={(item) => item.topic}
+                        getHistorySubtitle={(item) => `${new Date(item.date).toLocaleDateString()} • ${item.timeTaken}s`}
+                    />
+                 </div>
+                 
+                 {renderEditGameModal()}
             </div>
         );
     }
@@ -285,41 +394,52 @@ export function Match() {
                        <XCircle size={80} className="text-red-500 mb-4" />
                    )}
                    <h2 className="text-3xl font-bold text-gray-800 dark:text-white">
-                       {matches === gameItems.terms.length ? "Parabéns!" : "Tempo Esgotado!"}
+                       {matches === gameItems.terms.length ? 'Você Venceu!' : 'Fim de Jogo'}
                    </h2>
+                   <p className="text-gray-600 dark:text-gray-400 mt-2">
+                       Você encontrou {matches} pares em {timeLimit - timeLeft} segundos.
+                   </p>
                 </div>
 
-                <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 w-full max-w-sm text-center mb-8">
-                    <p className="text-gray-500 dark:text-gray-400 mb-1">Pontuação Final</p>
-                    <p className="text-4xl font-bold text-gray-800 dark:text-white mb-6">{matches} / {gameItems.terms.length}</p>
-                    
-                    <button 
-                        onClick={handleSaveHistory}
-                        className="w-full py-3 mb-3 bg-green-600 dark:bg-green-500 text-white rounded-xl font-medium hover:bg-green-700 dark:hover:bg-green-600 transition flex items-center justify-center gap-2"
-                    >
-                       <Save size={20} /> Salvar Resultado
-                    </button>
-
+                <div className="space-y-4 w-full max-w-xs">
                     <button 
                         onClick={() => setGameState('setup')}
-                        className="w-full py-3 bg-gray-800 dark:bg-slate-700 text-white rounded-xl font-medium hover:bg-gray-900 dark:hover:bg-slate-600 transition"
+                        className="w-full py-3 bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-slate-600 transition"
                     >
-                        Jogar Novamente
+                        Voltar ao Menu
+                    </button>
+                    <button 
+                        onClick={() => {
+                             // Reconstruct original cards to save
+                            const originalCards: FlashcardData[] = [];
+                            gameItems.terms.forEach(t => {
+                                const def = gameItems.definitions.find(d => d.originalPairId === t.originalPairId);
+                                if (def) {
+                                    originalCards.push({ term: t.text, definition: def.text });
+                                }
+                            });
+                            handleSaveGame(originalCards);
+                        }}
+                        className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition flex items-center justify-center gap-2"
+                    >
+                        <Save size={18} />
+                        Salvar Jogo
                     </button>
                 </div>
             </div>
         );
     }
 
-    // Render Game Board
     return (
-        <div className="flex flex-col h-[calc(100vh-100px)]">
-            {/* Game Header */}
-            <div className="flex justify-between items-center bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 mb-6">
-                <h2 className="font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-blue-500"></span>
-                    {topic}
-                </h2>
+        <div className="h-[calc(100vh-100px)] flex flex-col max-w-6xl mx-auto">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+                <button 
+                    onClick={() => setGameState('setup')}
+                    className="flex items-center text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
+                >
+                    <Settings size={20} className="mr-2" /> Configurar
+                </button>
                 <div className={`flex items-center gap-2 font-mono text-xl font-bold ${timeLeft < 30 ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
                     <Timer size={24} />
                     {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
@@ -332,7 +452,7 @@ export function Match() {
             {/* Game Area */}
             <div className="flex-1 flex gap-8 min-h-0">
                 {/* Terms Column */}
-                <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-2">
+                <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
                     {gameItems.terms.map(item => (
                         <div
                             key={item.id}
@@ -352,7 +472,7 @@ export function Match() {
                 </div>
 
                 {/* Definitions Column */}
-                <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-2">
+                <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
                      {gameItems.definitions.map(item => (
                         <div
                             key={item.id}

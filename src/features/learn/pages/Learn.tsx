@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Quiz } from '../components/Quiz';
 import { generateLearnQuestions, checkAnswer, QuizQuestion, QuestionType } from '../../../services/ai';
-import { ArrowLeft, History, Trash2, Save } from 'lucide-react';
+import { ArrowLeft, Save, Play, Trash2, Edit, X } from 'lucide-react';
 import { useLocalStorage } from '../../../hooks/useLocalStorage';
+import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 
 interface LearnHistoryItem {
     id: string;
@@ -10,6 +11,13 @@ interface LearnHistoryItem {
     topic: string;
     score: number;
     total: number;
+}
+
+interface SavedLearnQuiz {
+    id: string;
+    title: string;
+    questions: QuizQuestion[];
+    createdAt: string;
 }
 
 export function Learn() {
@@ -23,9 +31,10 @@ export function Learn() {
     const [quizFinished, setQuizFinished] = useState(false);
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [error, setError] = useState('');
-    const [showHistory, setShowHistory] = useState(false);
 
     const [history, setHistory] = useLocalStorage<LearnHistoryItem[]>('learnHistory', []);
+    const [savedQuizzes, setSavedQuizzes] = useLocalStorage<SavedLearnQuiz[]>('savedLearnQuizzes', []);
+    const [editingQuiz, setEditingQuiz] = useState<SavedLearnQuiz | null>(null);
 
     const handleSaveHistory = () => {
         const newItem: LearnHistoryItem = {
@@ -36,12 +45,134 @@ export function Learn() {
             total: questions.length
         };
         setHistory([newItem, ...history]);
-        alert('Resultado salvo!');
+    };
+
+    const handleSaveQuiz = () => {
+         const newQuiz: SavedLearnQuiz = {
+             id: crypto.randomUUID(),
+             title: topic,
+             questions: questions,
+             createdAt: new Date().toISOString()
+         };
+         setSavedQuizzes([...savedQuizzes, newQuiz]);
+         alert('Questionário salvo com sucesso!');
     };
 
     const handleDeleteHistoryItem = (id: string) => {
         setHistory(history.filter(item => item.id !== id));
     };
+
+    const handleDeleteSavedQuiz = (id: string) => {
+        setSavedQuizzes(savedQuizzes.filter(q => q.id !== id));
+    };
+    
+    const handlePlaySavedQuiz = (quiz: SavedLearnQuiz) => {
+        setTopic(quiz.title);
+        setQuestions(quiz.questions);
+        setQuizStarted(true);
+        setQuizFinished(false);
+        setCurrentQuestionIndex(0);
+        setScore(0);
+        setFeedback(null);
+    };
+
+    const handleEditSavedQuiz = (quiz: SavedLearnQuiz) => {
+        setEditingQuiz(quiz);
+    };
+
+    const saveEditedQuiz = () => {
+        if (!editingQuiz || !editingQuiz.title.trim()) return;
+        setSavedQuizzes(savedQuizzes.map(q => q.id === editingQuiz.id ? editingQuiz : q));
+        setEditingQuiz(null);
+    };
+
+    const renderEditQuizModal = () => {
+        if (!editingQuiz) return null;
+        
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                <div className="bg-white dark:bg-slate-800 w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+                    <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700">
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Editar Exercício</h2>
+                        <button onClick={() => setEditingQuiz(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                            <X size={24} />
+                        </button>
+                    </div>
+                     <div className="p-6 overflow-y-auto bg-gray-50 dark:bg-slate-900/50 flex-1">
+                        <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Título do Exercício</label>
+                        <input 
+                            type="text" 
+                            value={editingQuiz.title}
+                            onChange={(e) => setEditingQuiz({...editingQuiz, title: e.target.value})}
+                            className="w-full p-4 mb-6 border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="Nome do Exercício"
+                        />
+                        
+                        <h3 className="font-semibold text-gray-800 dark:text-white mb-4">Perguntas</h3>
+                        <div className="space-y-4">
+                            {editingQuiz.questions.map((q, idx) => (
+                                <div key={idx} className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 relative group">
+                                     <button 
+                                        onClick={() => {
+                                            const newQuestions = editingQuiz.questions.filter((_, i) => i !== idx);
+                                            setEditingQuiz({...editingQuiz, questions: newQuestions});
+                                        }}
+                                        className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                                        title="Remover Pergunta"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                     <div className="space-y-3 pr-6">
+                                        <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Pergunta</label>
+                                            <textarea
+                                                className="w-full p-2 bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 rounded-lg text-sm text-gray-800 dark:text-white outline-none focus:border-blue-500 resize-none min-h-[50px]"
+                                                value={q.question}
+                                                onChange={(e) => {
+                                                    const newQuestions = [...editingQuiz.questions];
+                                                    newQuestions[idx] = { ...q, question: e.target.value };
+                                                    setEditingQuiz({...editingQuiz, questions: newQuestions});
+                                                }}
+                                                placeholder="Sua pergunta..."
+                                            />
+                                        </div>
+                                         <div>
+                                            <label className="block text-xs text-gray-500 mb-1">Resposta Esperada</label>
+                                            <textarea
+                                                className="w-full p-2 bg-gray-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 rounded-lg text-sm text-gray-600 dark:text-gray-300 outline-none focus:border-blue-500 resize-none min-h-[50px]"
+                                                value={q.answer}
+                                                onChange={(e) => {
+                                                    const newQuestions = [...editingQuiz.questions];
+                                                    newQuestions[idx] = { ...q, answer: e.target.value };
+                                                    setEditingQuiz({...editingQuiz, questions: newQuestions});
+                                                }}
+                                                placeholder="A resposta correta..."
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                     </div>
+                     <div className="p-6 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700 flex justify-between gap-4">
+                        <button 
+                            onClick={() => setEditingQuiz({...editingQuiz, questions: [...editingQuiz.questions, { question: '', answer: '' }]})}
+                            className="px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
+                        >
+                            Adicionar Nova Pergunta
+                        </button>
+                        <button 
+                            onClick={saveEditedQuiz}
+                            className="flex-1 max-w-xs py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
+                        >
+                            Salvar Alterações
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
 
 
     const handleStartQuiz = async () => {
@@ -50,7 +181,7 @@ export function Learn() {
         setError('');
         try {
             const generatedQuestions = await generateLearnQuestions(topic);
-            if (generatedQuestions.length > 0) {
+            if (generatedQuestions && generatedQuestions.length > 0) {
                 setQuestions(generatedQuestions);
                 setQuizStarted(true);
                 setCurrentQuestionIndex(0);
@@ -116,12 +247,19 @@ export function Learn() {
                 <div className="text-xl text-gray-600 dark:text-gray-300">
                     Sua pontuação final: <span className="font-bold text-blue-600 dark:text-blue-400">{score}</span> de {questions.length}
                 </div>
-                <div className="flex gap-4 mt-4">
+             {renderEditQuizModal()}
+                <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
                     <button 
                         onClick={handleSaveHistory}
                         className="px-6 py-3 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition flex items-center gap-2"
                     >
-                        <Save size={20} /> Salvar
+                        <Save size={20} /> Salvar Resultado
+                    </button>
+                    <button 
+                        onClick={handleSaveQuiz}
+                        className="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition flex items-center gap-2"
+                    >
+                        <Save size={20} /> Salvar Exercício
                     </button>
                     <button 
                         onClick={() => {
@@ -129,7 +267,7 @@ export function Learn() {
                             setTopic('');
                             setQuestions([]);
                         }}
-                        className="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition"
+                        className="px-6 py-3 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition"
                     >
                         Voltar ao Início
                     </button>
@@ -188,40 +326,20 @@ export function Learn() {
                  </button>
              </div>
 
-             <button 
-                onClick={() => setShowHistory(!showHistory)} 
-                className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
-            >
-                <History size={20} /> {showHistory ? 'Ocultar Histórico' : 'Ver Histórico'}
-             </button>
-
-             {showHistory && (
-                 <div className="w-full bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 mt-4 text-left animate-in slide-in-from-top-4">
-                     <h3 className="font-bold text-gray-800 dark:text-white mb-4">Histórico de Aprendizado</h3>
-                     {history.length === 0 ? (
-                         <p className="text-gray-500 dark:text-gray-400 text-sm">Nenhum histórico salvo.</p>
-                     ) : (
-                         <div className="space-y-3">
-                             {history.map(item => (
-                                 <div key={item.id} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-lg border border-transparent hover:border-gray-200 dark:hover:border-slate-600 transition-all">
-                                     <div>
-                                         <div className="font-medium text-gray-800 dark:text-gray-200">{item.topic}</div>
-                                         <div className="text-xs text-gray-500">
-                                            {new Date(item.date).toLocaleDateString()} • Score: {item.score}/{item.total}
-                                         </div>
-                                     </div>
-                                     <button 
-                                         onClick={() => handleDeleteHistoryItem(item.id)}
-                                         className="p-2 text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                                     >
-                                         <Trash2 size={16} />
-                                     </button>
-                                 </div>
-                             ))}
-                         </div>
-                     )}
-                 </div>
-             )}
+             <div className="w-full max-w-lg mx-auto">
+                <ExerciseLists<SavedLearnQuiz, LearnHistoryItem>
+                    savedItems={savedQuizzes}
+                    historyItems={history}
+                    onPlaySaved={handlePlaySavedQuiz}
+                    onEditSaved={handleEditSavedQuiz}
+                    onDeleteSaved={handleDeleteSavedQuiz}
+                    onDeleteHistory={handleDeleteHistoryItem}
+                    getSavedTitle={(item) => item.title}
+                    getSavedSubtitle={(item) => `${item.questions.length} questões • ${new Date(item.createdAt).toLocaleDateString()}`}
+                />
+             </div>
+             
+             {renderEditQuizModal()}
         </div>
     );
 }
