@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocalStorage } from '../../../hooks/useLocalStorage';
 import { Card } from '../components/Card';
+import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { generateFlashcards, FlashcardData } from '../../../services/ai';
 import { 
   Plus, Brain, Loader2, Folder, MoreVertical, 
@@ -15,9 +16,19 @@ interface FlashcardSet {
   createdAt: string;
 }
 
+interface HistoryItem {
+  id: string;
+  setId: string;
+  title: string;
+  date: string;
+  score?: number;
+  total?: number;
+}
+
 export function Flashcards() {
   // Global State
   const [sets, setSets] = useLocalStorage<FlashcardSet[]>('flashcardSets', []);
+  const [history, setHistory] = useLocalStorage<HistoryItem[]>('flashcardHistory', []);
   const [currentView, setCurrentView] = useState<'sets' | 'generator' | 'study' | 'manual'>('sets');
   const [activeSetId, setActiveSetId] = useState<string | null>(null);
 
@@ -53,6 +64,18 @@ export function Flashcards() {
   const [manualCards, setManualCards] = useState<FlashcardData[]>([{ term: '', definition: '' }]);
 
   // Handlers
+  const completeSet = (set: FlashcardSet) => {
+    const newHistoryItem: HistoryItem = {
+        id: crypto.randomUUID(),
+        setId: set.id,
+        title: set.title,
+        date: new Date().toISOString(),
+        score: set.cards.length,
+        total: set.cards.length
+    };
+    setHistory([newHistoryItem, ...history]);
+  };
+
   const handleGenerate = async () => {
     if (!genTopic.trim()) return;
     setIsGenerating(true);
@@ -119,7 +142,10 @@ export function Flashcards() {
       utterance.lang = 'pt-BR';
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
-    }
+    }if (viewCardIndex === currentSet.cards.length - 1) {
+                 completeSet(currentSet);
+             }
+             
   };
 
   const handleStudyNextCard = (direction: 'left' | 'right') => {
@@ -165,7 +191,7 @@ export function Flashcards() {
       
       {/* Create Buttons */}
       <h2 className="text-3xl font-bold mb-8 text-gray-800 dark:text-white">Criar Cartões</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-16">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <button 
           onClick={() => setCurrentView('generator')}
           className="p-6 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-gray-300 dark:border-slate-600 flex flex-col items-center justify-center gap-3 text-gray-600 dark:text-gray-300 hover:border-purple-500 hover:text-purple-600 dark:hover:text-purple-400 transition-colors group"
@@ -187,33 +213,21 @@ export function Flashcards() {
         </button>
       </div>
       
-      {/* List of Sets */}
-      <h2 className="text-2xl font-bold mb-8 text-gray-800 dark:text-white">Lista de Cartões</h2>
-      <div className="space-y-4 mb-8">
-        {sets.map(set => (
-          <div key={set.id} className="relative bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-               onClick={() => { setActiveSetId(set.id); setCurrentView('study'); setViewCardIndex(0); }}>
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gray-100 dark:bg-slate-700 rounded-lg">
-                <Folder className="text-gray-600 dark:text-gray-300" size={24} />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg text-gray-800 dark:text-white">{set.title}</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{set.cards.length} cartões</p>
-              </div>
-            </div>
-            <button 
-              className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition"
-              onClick={(e) => { e.stopPropagation(); setShowSetActionsModal(set.id); }}
-            >
-              <MoreVertical size={20} className="text-gray-500" />
-            </button>
-          </div>
-        ))}
-        {sets.length === 0 && (
-            <p className="text-center text-gray-500">Nenhum conjunto de cartões encontrado. Crie um novo!</p>
-        )}
-      </div>
+      <ExerciseLists
+        savedItems={sets}
+        historyItems={history}
+        savedTabLabel="Lista de Cartões"
+        historyTabLabel="Histórico"
+        onPlaySaved={(set) => { setActiveSetId(set.id); setCurrentView('study'); setViewCardIndex(0); }}
+        onEditSaved={(set) => setEditingSet(set)}
+        onDeleteSaved={(id) => setSets(sets.filter(s => s.id !== id))}
+        onDeleteHistory={(id) => setHistory(history.filter(h => h.id !== id))}
+        getSavedTitle={(set) => set.title}
+        getSavedSubtitle={(set) => `${set.cards.length} cartões`}
+        getHistoryTitle={(item) => item.title}
+        getHistorySubtitle={(item) => new Date(item.date).toLocaleDateString()}
+        getHistoryScore={(item) => item.score !== undefined && item.total ? `${item.score}/${item.total}` : ''}
+      />
     </div>
   );
 
@@ -642,7 +656,8 @@ export function Flashcards() {
                                 <button 
                                     onClick={() => {
                                          if (viewCardIndex < activeSet.cards.length - 1) {
-                                             setViewCardIndex(prev => prev + 1);
+                                             scompleteSet(activeSet);
+                                              etViewCardIndex(prev => prev + 1);
                                              setIsStudyCardFlipped(false);
                                          } else if (viewCardIndex === activeSet.cards.length - 1) {
                                               setViewCardIndex(prev => prev + 1); // Finish

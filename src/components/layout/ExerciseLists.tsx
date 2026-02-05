@@ -18,6 +18,9 @@ interface SharedListProps<T_Saved, T_History> {
     getHistorySubtitle?: (item: T_History) => string;
     getHistoryId?: (item: T_History) => string;
     getHistoryScore?: (item: T_History) => string | number; // Optional score display
+    
+    savedTabLabel?: string;
+    historyTabLabel?: string;
 }
 
 export function ExerciseLists<T_Saved extends { id: string }, T_History extends { id: string }>({
@@ -33,7 +36,9 @@ export function ExerciseLists<T_Saved extends { id: string }, T_History extends 
     getHistoryTitle = (item: any) => item.topic,
     getHistorySubtitle = (item: any) => new Date(item.date).toLocaleDateString(),
     getHistoryId = (item) => item.id,
-    getHistoryScore = (item: any) => item.score !== undefined ? `${item.score}/${item.total}` : ''
+    getHistoryScore = (item: any) => item.score !== undefined ? `${item.score}/${item.total}` : '',
+    savedTabLabel = 'Exercícios Salvos',
+    historyTabLabel = 'Histórico'
 }: SharedListProps<T_Saved, T_History>) {
     const [activeTab, setActiveTab] = useState<'saved' | 'history'>('saved');
 
@@ -50,7 +55,7 @@ export function ExerciseLists<T_Saved extends { id: string }, T_History extends 
                         }`}
                 >
                     <FolderOpen size={18} />
-                    Exercícios Salvos ({savedItems.length})
+                    {savedTabLabel} ({savedItems.length})
                 </button>
                 <button
                     onClick={() => setActiveTab('history')}
@@ -61,7 +66,7 @@ export function ExerciseLists<T_Saved extends { id: string }, T_History extends 
                         }`}
                 >
                     <History size={18} />
-                    Histórico ({historyItems.length})
+                    {historyTabLabel} ({historyItems.length})
                 </button>
             </div>
 
