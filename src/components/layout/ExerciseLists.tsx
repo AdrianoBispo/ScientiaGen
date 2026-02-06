@@ -100,7 +100,7 @@ export function ExerciseLists<T_Saved extends { id: string }, T_History extends 
     };
 
     return (
-        <div className="w-full mt-12 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
+        <div className="w-full mt-8 sm:mt-12 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden">
             {/* Tabs Header */}
             <div className="flex border-b border-gray-200 dark:border-slate-700">
                 <button
@@ -111,34 +111,34 @@ export function ExerciseLists<T_Saved extends { id: string }, T_History extends 
                             : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700/30'
                         }`}
                 >
-                    <FolderOpen size={18} />
+                    <FolderOpen size={18} className="hidden sm:block" />
                     {savedTabLabel} ({savedItems.length})
                 </button>
                 <button
                     onClick={() => setActiveTab('history')}
-                    className={`flex-1 py-4 text-center font-medium transition-colors flex items-center justify-center gap-2
+                    className={`flex-1 py-3 sm:py-4 text-center text-sm sm:text-base font-medium transition-colors flex items-center justify-center gap-1.5 sm:gap-2
                         ${activeTab === 'history' 
                             ? 'bg-purple-50 dark:bg-slate-700/50 text-purple-600 dark:text-purple-400 border-b-2 border-purple-600 dark:border-purple-400' 
                             : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700/30'
                         }`}
                 >
-                    <History size={18} />
+                    <History size={18} className="hidden sm:block" />
                     {historyTabLabel} ({historyItems.length})
                 </button>
             </div>
 
             {/* List Content */}
-            <div className="max-h-[500px] overflow-y-auto p-4 space-y-3 custom-scrollbar">
+            <div className="max-h-[400px] sm:max-h-[500px] overflow-y-auto p-3 sm:p-4 space-y-2 sm:space-y-3 custom-scrollbar">
                 {activeTab === 'saved' ? (
                     savedItems.length > 0 ? (
                         savedItems.map((item) => (
                             <div 
                                 key={getSavedId(item)} 
-                                className="group flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-gray-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600 transition-all cursor-pointer"
+                                className="group flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-gray-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-slate-600 transition-all cursor-pointer"
                                 onClick={() => handleOpenActionsModal(item)}
                             >
                                 <div className="flex-1">
-                                    <h4 className="font-semibold text-gray-800 dark:text-white mb-1">{getSavedTitle(item)}</h4>
+                                    <h4 className="font-semibold text-sm sm:text-base text-gray-800 dark:text-white mb-1">{getSavedTitle(item)}</h4>
                                     <p className="text-xs text-gray-500 flex items-center gap-2">
                                         <span className="flex items-center gap-1">
                                             <Calendar size={12} />
@@ -168,7 +168,7 @@ export function ExerciseLists<T_Saved extends { id: string }, T_History extends 
                 ) : (
                     historyItems.length > 0 ? (
                         historyItems.map((item) => (
-                            <div key={getHistoryId(item)} className="group flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-gray-200 dark:border-slate-700">
+                            <div key={getHistoryId(item)} className="group flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-gray-200 dark:border-slate-700">
                                 <div>
                                     <h4 className="font-semibold text-gray-800 dark:text-white mb-1">{getHistoryTitle(item)}</h4>
                                     <div className="flex items-center gap-3 text-xs text-gray-500">
@@ -211,7 +211,7 @@ export function ExerciseLists<T_Saved extends { id: string }, T_History extends 
                     onClick={handleCloseActionsModal}
                 >
                     <div 
-                        className="bg-white dark:bg-slate-800 w-80 rounded-2xl shadow-xl overflow-hidden animate-fade-in" 
+                        className="bg-white dark:bg-slate-800 w-[calc(100%-2rem)] sm:w-80 rounded-2xl shadow-xl overflow-hidden animate-fade-in" 
                         onClick={e => e.stopPropagation()}
                     >
                         <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center">

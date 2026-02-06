@@ -38,17 +38,17 @@ export function Quiz({
     };
 
     return (
-        <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto p-4">
+        <div className="flex flex-col gap-4 sm:gap-6 w-full max-w-2xl mx-auto p-2 sm:p-4">
              {/* Learn Header */}
-             <div className="flex justify-between w-full mb-5 text-lg font-medium">
+             <div className="flex justify-between w-full mb-3 sm:mb-5 text-base sm:text-lg font-medium">
                  {/* Timer placeholder */}
                  <div className="text-gray-700 dark:text-gray-300"></div> 
                  <div className="text-gray-700 dark:text-gray-300">{currentStep} / {totalSteps}</div>
              </div>
 
              {/* Question Area */}
-             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700">
-                 <p className="text-xl text-gray-800 dark:text-gray-100 mb-4 leading-relaxed">
+             <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700">
+                 <p className="text-lg sm:text-xl text-gray-800 dark:text-gray-100 mb-4 leading-relaxed">
                      {question}
                  </p>
                  

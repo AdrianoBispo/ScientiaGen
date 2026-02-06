@@ -57,7 +57,7 @@ export function Home() {
   const carouselItems = [...features, ...features];
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-8 overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-[40vh] sm:min-h-[60vh] text-center gap-4 sm:gap-8 overflow-hidden">
       <style>{`
         .swiper-button-prev,
         .swiper-button-next {
@@ -65,21 +65,27 @@ export function Home() {
           margin-top: 0;
           transform: translateY(-50%);
         }
+        @media (max-width: 639px) {
+          .swiper-button-prev,
+          .swiper-button-next {
+            display: none;
+          }
+        }
       `}</style>
-      <h1 className="text-4xl font-bold text-gray-800 dark:text-white">
+      <h1 className="text-2xl sm:text-4xl font-bold text-gray-800 dark:text-white px-2">
         Boas-vindas ao ScientiaGen
       </h1>
-      <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl">
+      <p className="text-base sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl px-2">
         Sua plataforma de estudos inteligente, potencializada pela API Gemini.
         Crie materiais de estudo interativos, desde flashcards e quizzes a
         soluções guiadas.
       </p>
 
-      <div className="w-full max-w-5xl mt-8 px-4 h-96">
+      <div className="w-full max-w-5xl mt-4 sm:mt-8 px-2 sm:px-4 h-72 sm:h-96">
         <Swiper
           modules={[Autoplay, Navigation]}
-          spaceBetween={30}
-          slidesPerView={3}
+          spaceBetween={16}
+          slidesPerView={1}
           centeredSlides={true}
           loop={true}
           navigation={true}
@@ -87,7 +93,13 @@ export function Home() {
             delay: 3000,
             disableOnInteraction: false,
           }}
-          className="h-full py-10"
+          breakpoints={{
+            640: {
+              slidesPerView: 3,
+              spaceBetween: 30,
+            },
+          }}
+          className="h-full py-5 sm:py-10"
         >
           {carouselItems.map((item, index) => (
             <SwiperSlide
@@ -132,13 +144,13 @@ function FeatureCard({
   return (
     <NavLink
       to={to}
-      className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 hover:shadow-md transition-shadow flex flex-col items-center text-center gap-4 group"
+      className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 hover:shadow-md transition-shadow flex flex-col items-center text-center gap-3 sm:gap-4 group"
     >
-      <span className="mb-2 text-blue-600 dark:text-blue-400">{icon}</span>
-      <h3 className="text-xl font-semibold text-gray-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+      <span className="mb-1 sm:mb-2 text-blue-600 dark:text-blue-400">{icon}</span>
+      <h3 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
         {title}
       </h3>
-      <p className="text-gray-600 dark:text-gray-400">{desc}</p>
+      <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">{desc}</p>
     </NavLink>
   );
 }

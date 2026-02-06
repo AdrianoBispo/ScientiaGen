@@ -110,19 +110,19 @@ export function Learn() {
     };
 
     const renderAIView = () => (
-        <div className="w-full max-w-4xl mx-auto p-6">
+        <div className="w-full max-w-4xl mx-auto p-3 sm:p-6">
             <button 
                 onClick={() => setCurrentView('setup')} 
-                className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white mb-6 transition"
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white mb-4 sm:mb-6 transition"
             >
                 <ArrowLeft size={20} /> Voltar
             </button>
 
             <div className="flex flex-col h-full">
-                <h1 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white text-center">Gerar com IA</h1>
-                <p className="text-gray-500 dark:text-gray-400 mb-8 text-center">Use o formulário abaixo para enviar um tópico e receber exercícios gerados pela IA.</p>
+                <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-800 dark:text-white text-center">Gerar com IA</h1>
+                <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-6 sm:mb-8 text-center">Use o formulário abaixo para enviar um tópico e receber exercícios gerados pela IA.</p>
 
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 mb-8">
+                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 mb-6 sm:mb-8">
                     <label className="block text-sm font-medium mb-4 text-left text-gray-700 dark:text-gray-300">Tópico do Exercício</label>
                     <textarea 
                         value={topic}
@@ -147,19 +147,19 @@ export function Learn() {
     );
 
     const renderManualCreationView = () => (
-        <div className="w-full max-w-4xl mx-auto p-6">
+        <div className="w-full max-w-4xl mx-auto p-3 sm:p-6">
             <button 
                 onClick={() => setCurrentView('setup')} 
-                className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white mb-6 transition"
+                className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white mb-4 sm:mb-6 transition"
             >
                 <ArrowLeft size={20} /> Voltar
             </button>
 
             <div className="flex flex-col h-full">
-                <h1 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white text-center">Criar Manualmente</h1>
-                <p className="text-gray-500 dark:text-gray-400 mb-8 text-center">Crie suas próprias perguntas e respostas.</p>
+                <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-800 dark:text-white text-center">Criar Manualmente</h1>
+                <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-6 sm:mb-8 text-center">Crie suas próprias perguntas e respostas.</p>
 
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 mb-8">
+                <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 mb-6 sm:mb-8">
                     <input 
                         type="text" 
                         value={manualTitle}
@@ -232,15 +232,15 @@ export function Learn() {
         if (!editingQuiz) return null;
         
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                <div className="bg-white dark:bg-slate-800 w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
-                    <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700">
-                        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Editar Exercício</h2>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
+                <div className="bg-white dark:bg-slate-800 w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[90vh]">
+                    <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-100 dark:border-slate-700">
+                        <h2 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-white">Editar Exercício</h2>
                         <button onClick={() => setEditingQuiz(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                             <X size={24} />
                         </button>
                     </div>
-                     <div className="p-6 overflow-y-auto bg-gray-50 dark:bg-slate-900/50 flex-1">
+                     <div className="p-4 sm:p-6 overflow-y-auto bg-gray-50 dark:bg-slate-900/50 flex-1">
                         <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Título do Exercício</label>
                         <input 
                             type="text" 
@@ -296,7 +296,7 @@ export function Learn() {
                             ))}
                         </div>
                      </div>
-                     <div className="p-6 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700 flex justify-between gap-4">
+                     <div className="p-4 sm:p-6 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700 flex flex-col sm:flex-row justify-between gap-3 sm:gap-4">
                         <button 
                             onClick={() => setEditingQuiz({...editingQuiz, questions: [...editingQuiz.questions, { question: '', answer: '' }]})}
                             className="px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition"
@@ -384,16 +384,16 @@ export function Learn() {
 
     if (quizFinished) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 animate-in zoom-in duration-300">
-                <h2 className="text-3xl font-bold text-gray-800 dark:text-white">Quiz Finalizado!</h2>
+            <div className="flex flex-col items-center justify-center min-h-[40vh] sm:min-h-[60vh] gap-4 sm:gap-6 animate-in zoom-in duration-300 px-4">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">Quiz Finalizado!</h2>
                 <div className="text-xl text-gray-600 dark:text-gray-300">
                     Sua pontuação final: <span className="font-bold text-blue-600 dark:text-blue-400">{score}</span> de {questions.length}
                 </div>
              {renderEditQuizModal()}
-                <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
+                <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-4">
                     <button 
                         onClick={handleSaveHistory}
-                        className="px-6 py-3 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition flex items-center gap-2"
+                        className="px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition flex items-center gap-2 text-sm sm:text-base"
                     >
                         <Save size={20} /> Salvar Resultado
                     </button>
@@ -450,15 +450,15 @@ export function Learn() {
     }
 
     return (
-        <div className="w-full max-w-6xl mx-auto p-6">
-            <h2 className="text-3xl font-bold mb-2 text-gray-800 dark:text-white">Modo Aprender</h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-8">Escolha como deseja criar seus exercícios.</p>
+        <div className="w-full max-w-6xl mx-auto p-3 sm:p-6">
+            <h2 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-800 dark:text-white">Modo Aprender</h2>
+            <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mb-6 sm:mb-8">Escolha como deseja criar seus exercícios.</p>
             
             {/* Create Buttons */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
                 <button 
                     onClick={() => setCurrentView('ai')}
-                    className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
+                    className="p-5 sm:p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-3 sm:gap-4 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
                 >
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl group-hover:scale-110 transition-transform">
                         <Sparkles size={28} className="text-blue-600 dark:text-blue-400" />
@@ -471,7 +471,7 @@ export function Learn() {
                 
                 <button 
                     onClick={() => setCurrentView('manual')}
-                    className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-green-400 dark:hover:border-green-500 hover:shadow-md transition-all group"
+                    className="p-5 sm:p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-3 sm:gap-4 hover:border-green-400 dark:hover:border-green-500 hover:shadow-md transition-all group"
                 >
                     <div className="p-4 bg-green-50 dark:bg-green-900/30 rounded-xl group-hover:scale-110 transition-transform">
                         <Pencil size={28} className="text-green-600 dark:text-green-400" />
