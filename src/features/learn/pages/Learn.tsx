@@ -408,6 +408,7 @@ export function Learn() {
         if (currentQuestionIndex < questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
         } else {
+            handleSaveHistory();
             setQuizFinished(true);
         }
     };
