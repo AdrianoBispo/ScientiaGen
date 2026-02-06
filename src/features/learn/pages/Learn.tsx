@@ -438,10 +438,20 @@ export function Learn() {
     };
 
     const handleSkip = () => {
-        setFeedback({
-            isCorrect: false,
-            text: `A resposta correta era: ${questions[currentQuestionIndex].answer}`
-        });
+        setFeedback(null);
+        if (currentQuestionIndex < questions.length - 1) {
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
+        } else {
+            handleSaveHistory();
+            setQuizFinished(true);
+        }
+    };
+
+    const handlePrevious = () => {
+        if (currentQuestionIndex > 0) {
+            setFeedback(null);
+            setCurrentQuestionIndex(currentQuestionIndex - 1);
+        }
     };
 
     if (showSetup) {
@@ -526,6 +536,8 @@ export function Learn() {
                     question={questions[currentQuestionIndex].question}
                     onAnswer={handleAnswer}
                     onSkip={handleSkip}
+                    onPrevious={handlePrevious}
+                    canGoPrevious={currentQuestionIndex > 0}
                     isEvaluating={isEvaluating}
                     feedback={feedback}
                     onNext={handleNext}

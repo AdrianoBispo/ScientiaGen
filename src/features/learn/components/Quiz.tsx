@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ChevronLeft } from 'lucide-react';
 
 interface QuizProps {
     currentStep: number;
@@ -7,6 +8,7 @@ interface QuizProps {
     onAnswer: (answer: string, timeTaken: number) => void;
     onSkip?: () => void;
     onPrevious?: () => void;
+    canGoPrevious?: boolean;
     isEvaluating?: boolean;
     feedback?: { isCorrect: boolean; text: string } | null;
     onNext?: () => void;
@@ -19,6 +21,7 @@ export function Quiz({
     onAnswer, 
     onSkip, 
     onPrevious,
+    canGoPrevious,
     isEvaluating, 
     feedback, 
     onNext 
@@ -73,16 +76,18 @@ export function Quiz({
 
              {/* Actions */}
              <div className="flex justify-between gap-3">
-                {onPrevious && (
-                    <button 
-                        onClick={onPrevious}
-                        className="px-4 py-2 text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg font-medium transition-colors"
-                        disabled={isEvaluating}
-                    >
-                        Anterior
-                    </button>
-                )}
-                <div className="flex gap-3 ml-auto">
+                <div>
+                    {canGoPrevious && !isEvaluating && (
+                        <button 
+                            onClick={onPrevious}
+                            className="flex items-center gap-1 px-4 py-2 text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg font-medium transition-colors"
+                        >
+                            <ChevronLeft size={18} />
+                            Anterior
+                        </button>
+                    )}
+                </div>
+                <div className="flex gap-3">
                 {!feedback ? (
                     <>
                          <button 
