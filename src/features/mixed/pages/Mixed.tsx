@@ -5,6 +5,7 @@ import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
 import { ExerciseCompletion } from '../../../components/exercises/ExerciseCompletion';
+import { ExerciseBackButton } from '../../../components/exercises/ExerciseBackButton';
 
 interface MixedHistoryItem {
     id: string;
@@ -620,7 +621,16 @@ export function Mixed() {
         return (
             <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto py-10">
                 <div className="flex justify-between items-center text-sm font-medium text-gray-500 dark:text-gray-400">
-                    <span className="uppercase tracking-wider">Questão {currentIndex + 1}</span>
+                    <ExerciseBackButton
+                        onConfirm={() => {
+                            setCurrentStep('setup');
+                            setCurrentIndex(0);
+                            setScore(0);
+                            setFeedback(null);
+                            setUserAnswer('');
+                            setQuestions([]);
+                        }}
+                    />
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1.5 font-mono text-base font-bold text-gray-700 dark:text-gray-300">
                             <Timer size={18} />

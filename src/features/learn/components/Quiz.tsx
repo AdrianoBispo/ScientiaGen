@@ -6,6 +6,7 @@ interface QuizProps {
     question: string;
     onAnswer: (answer: string, timeTaken: number) => void;
     onSkip?: () => void;
+    onPrevious?: () => void;
     isEvaluating?: boolean;
     feedback?: { isCorrect: boolean; text: string } | null;
     onNext?: () => void;
@@ -17,6 +18,7 @@ export function Quiz({
     question, 
     onAnswer, 
     onSkip, 
+    onPrevious,
     isEvaluating, 
     feedback, 
     onNext 
@@ -70,7 +72,17 @@ export function Quiz({
              )}
 
              {/* Actions */}
-             <div className="flex justify-end gap-3">
+             <div className="flex justify-between gap-3">
+                {onPrevious && (
+                    <button 
+                        onClick={onPrevious}
+                        className="px-4 py-2 text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg font-medium transition-colors"
+                        disabled={isEvaluating}
+                    >
+                        Anterior
+                    </button>
+                )}
+                <div className="flex gap-3 ml-auto">
                 {!feedback ? (
                     <>
                          <button 
@@ -96,6 +108,7 @@ export function Quiz({
                         Próxima
                     </button>
                 )}
+                </div>
              </div>
         </div>
     );

@@ -6,6 +6,7 @@ import { generateFlashcards, FlashcardData } from '../../../services/ai';
 import { parseSpreadsheet, getAcceptString, isValidSpreadsheetFile } from '../../../utils/spreadsheetParser';
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
 import { ExerciseCompletion } from '../../../components/exercises/ExerciseCompletion';
+import { ExerciseBackButton } from '../../../components/exercises/ExerciseBackButton';
 import { 
   Plus, Brain, Loader2, Folder, MoreVertical, 
   Volume2, X, ChevronLeft, ChevronRight, CheckSquare, 
@@ -738,9 +739,15 @@ export function Flashcards() {
               <div className="w-full h-full flex flex-col items-center p-6">
                    <div className="w-full max-w-6xl mb-6">
                         <div className="flex items-center justify-between mb-4">
-                            <button onClick={() => { setCurrentView('sets'); setActiveSetId(null); }} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white transition">
-                                <ArrowLeft size={20} /> Voltar para Cartões
-                            </button>
+                            <ExerciseBackButton
+                                onConfirm={() => {
+                                    setCurrentView('sets');
+                                    setActiveSetId(null);
+                                    setStudyScore(0);
+                                    setViewCardIndex(0);
+                                    setIsStudyCardFlipped(false);
+                                }}
+                            />
                             <div className="flex items-center gap-2 font-mono text-lg font-bold text-gray-700 dark:text-gray-300">
                                 <Timer size={20} />
                                 {formatTime(studyElapsedTime)}

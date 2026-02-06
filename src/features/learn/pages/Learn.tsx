@@ -6,6 +6,7 @@ import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
 import { ExerciseCompletion } from '../../../components/exercises/ExerciseCompletion';
+import { ExerciseBackButton } from '../../../components/exercises/ExerciseBackButton';
 
 interface LearnHistoryItem {
     id: string;
@@ -505,12 +506,15 @@ export function Learn() {
         return (
             <div className="w-full max-w-4xl mx-auto">
                 <div className="mb-6 flex items-center justify-between">
-                    <button 
-                        onClick={() => setQuizStarted(false)} 
-                        className="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
-                    >
-                        <ArrowLeft size={20} className="mr-2" /> Voltar
-                    </button>
+                    <ExerciseBackButton
+                        onConfirm={() => {
+                            setQuizStarted(false);
+                            setQuizFinished(false);
+                            setCurrentQuestionIndex(0);
+                            setScore(0);
+                            setFeedback(null);
+                        }}
+                    />
                     <div className="flex items-center gap-2 font-mono text-lg font-bold text-gray-700 dark:text-gray-300">
                         <Timer size={20} />
                         {formatTime(elapsedTime)}

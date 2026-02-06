@@ -6,6 +6,7 @@ import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
 import { ExerciseCompletion } from '../../../components/exercises/ExerciseCompletion';
+import { ExerciseBackButton } from '../../../components/exercises/ExerciseBackButton';
 
 const MAX_VISIBLE_PAIRS = 6;
 
@@ -768,12 +769,13 @@ export function Match() {
         <div className="h-[calc(100vh-100px)] flex flex-col max-w-6xl mx-auto">
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
-                <button 
-                    onClick={() => setGameState('setup')}
-                    className="flex items-center text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition"
-                >
-                    <Settings size={20} className="mr-2" /> Configurar
-                </button>
+                <ExerciseBackButton
+                    onConfirm={() => {
+                        setGameState('setup');
+                        setMatches(0);
+                        if (timerRef.current) clearInterval(timerRef.current);
+                    }}
+                />
                 <div className={`flex items-center gap-2 font-mono text-xl font-bold ${timeLeft < 30 ? 'text-red-500' : 'text-gray-700 dark:text-gray-300'}`}>
                     <Timer size={24} />
                     {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
