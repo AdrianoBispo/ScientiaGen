@@ -116,12 +116,6 @@ export function Header() {
                                         setIsMenuOpen(false);
                                     }} />
                                 </div>
-
-                                <div className="border-t border-gray-100 dark:border-slate-700 py-2">
-                                   <MenuItem label="Política de privacidade" />
-                                   <MenuItem label="Ajuda e comentários" />
-                                   <MenuItem label="Faça o upgrade" />
-                                </div>
                             </div>
                         )}
                     </div>
