@@ -29,6 +29,10 @@ export function usePersistence<T>(
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   
+  // Store initialValue in a ref to avoid triggering useEffect on every render
+  // when callers pass a new object/array reference (e.g. [])
+  const initialValueRef = useRef(initialValue);
+
   // Keep track of whether we've done the initial load
   const initialLoadDone = useRef(false);
   const previousUserId = useRef<string | null>(null);
@@ -36,6 +40,7 @@ export function usePersistence<T>(
   // Load data on mount and when auth state changes
   useEffect(() => {
     let mounted = true;
+    const initVal = initialValueRef.current;
 
     async function loadData() {
       setIsLoading(true);
@@ -55,7 +60,7 @@ export function usePersistence<T>(
             const firestoreData = await getFromFirestore<T>(
               currentUser.uid, 
               collectionName, 
-              initialValue
+              initVal
             );
             
             if (mounted) {
@@ -64,7 +69,7 @@ export function usePersistence<T>(
           }
         } else {
           // User is not logged in - use localStorage
-          const localData = getFromLocalStorage<T>(key, initialValue);
+          const localData = getFromLocalStorage<T>(key, initVal);
           if (mounted) {
             setStoredValue(localData);
           }
@@ -72,7 +77,7 @@ export function usePersistence<T>(
       } catch (error) {
         console.error(`Error loading data for key "${key}":`, error);
         // Fallback to localStorage on error
-        const localData = getFromLocalStorage<T>(key, initialValue);
+        const localData = getFromLocalStorage<T>(key, initVal);
         if (mounted) {
           setStoredValue(localData);
         }
@@ -90,7 +95,7 @@ export function usePersistence<T>(
     return () => {
       mounted = false;
     };
-  }, [currentUser, key, initialValue]);
+  }, [currentUser, key]);
 
   // Save function that handles both localStorage and Firestore
   const setValue = useCallback(
