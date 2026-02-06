@@ -3,6 +3,10 @@ import {
   signInWithPopup, 
   signOut, 
   onAuthStateChanged, 
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+  fetchSignInMethodsForEmail,
   User 
 } from 'firebase/auth';
 import { auth, googleProvider } from '../../../services/firebase';
@@ -11,6 +15,8 @@ interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   loginWithGoogle: () => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
+  registerWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -26,6 +32,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error("Erro ao fazer login com Google:", error);
+      throw error;
+    }
+  }
+
+  // Function to handle Email/Password Login
+  async function loginWithEmail(email: string, password: string) {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      console.error("Erro ao fazer login com e-mail:", error);
+      throw error;
+    }
+  }
+
+  // Function to handle Email/Password Registration
+  // Checks if email is already linked to Google provider before creating
+  async function registerWithEmail(email: string, password: string, displayName: string) {
+    try {
+      // Check if the email is already associated with Google provider
+      const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+      if (signInMethods.includes('google.com')) {
+        const error = new Error('Este e-mail já está vinculado a uma conta Google.');
+        (error as any).code = 'auth/email-exists-in-google-provider';
+        throw error;
+      }
+
+      // Create the user with email and password (no truncation - Firebase handles full string)
+      const credential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Update the user's display name
+      await updateProfile(credential.user, { displayName });
+    } catch (error) {
+      console.error("Erro ao criar conta:", error);
+      throw error;
     }
   }
 
@@ -52,6 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     currentUser,
     loading,
     loginWithGoogle,
+    loginWithEmail,
+    registerWithEmail,
     logout
   };
 

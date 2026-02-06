@@ -2,21 +2,23 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { LoginModal } from '../../features/auth/components/LoginModal';
+import { RegisterModal } from '../../features/auth/components/RegisterModal';
 import { 
     BarChart, 
     Settings, 
     Moon, 
     Sun,
     User as UserIcon,
-    X,
 } from 'lucide-react';
 
 export function Header() {
     const navigate = useNavigate();
-    const { currentUser, loginWithGoogle, logout } = useAuth();
+    const { currentUser, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     // Close menu when clicking outside
@@ -121,56 +123,24 @@ export function Header() {
             </header>
 
             {/* Login Modal */}
-            {isLoginModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md p-8 relative animate-in zoom-in-95 duration-200">
-                        <button 
-                            onClick={() => setIsLoginModalOpen(false)}
-                            className="absolute top-4 right-4 p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-600 dark:hover:text-gray-200 transition"
-                        >
-                            <X size={24} />
-                        </button>
+            <LoginModal
+                isOpen={isLoginModalOpen}
+                onClose={() => setIsLoginModalOpen(false)}
+                onSwitchToRegister={() => {
+                    setIsLoginModalOpen(false);
+                    setIsRegisterModalOpen(true);
+                }}
+            />
 
-                        <div className="text-center mb-8 mt-2">
-                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Bem-vindo!</h2>
-                            <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                                Faça login para salvar seu progresso e acessar todos os recursos.
-                            </p>
-                        </div>
-
-                        <div className="space-y-3">
-                             <button
-                                onClick={toggleTheme}
-                                className={`w-full flex items-center justify-center gap-3 p-3 rounded-xl border-2 font-medium transition-all ${
-                                    theme === 'dark' 
-                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' 
-                                        : 'border-gray-200 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700'
-                                }`}
-                             >
-                                {theme === 'dark' ? <Sun size={20} className="fill-current" /> : <Moon size={20} />} 
-                                <span>{theme === 'dark' ? 'Modo claro' : 'Modo escuro'}</span>
-                             </button>
-
-                            <button 
-                                onClick={() => {
-                                    loginWithGoogle();
-                                    setIsLoginModalOpen(false);
-                                }}
-                                className="w-full flex items-center justify-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition font-medium"
-                            >
-                                Login com Google
-                            </button>
-
-                            <button
-                                onClick={() => alert("Funcionalidade em desenvolvimento")}
-                                className="w-full flex items-center justify-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700 transition font-medium"
-                            >
-                                Login com E-mail
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Register Modal */}
+            <RegisterModal
+                isOpen={isRegisterModalOpen}
+                onClose={() => setIsRegisterModalOpen(false)}
+                onSwitchToLogin={() => {
+                    setIsRegisterModalOpen(false);
+                    setIsLoginModalOpen(true);
+                }}
+            />
         </>
     );
 }
