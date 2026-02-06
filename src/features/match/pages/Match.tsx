@@ -7,6 +7,8 @@ import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
 import { ExerciseCompletion } from '../../../components/exercises/ExerciseCompletion';
 
+const MAX_VISIBLE_PAIRS = 6;
+
 type GameState = 'setup' | 'loading' | 'playing' | 'finished';
 
 interface MatchCard {
@@ -55,6 +57,7 @@ export function Match() {
     const [gameItems, setGameItems] = useState<{terms: MatchCard[], definitions: MatchCard[]}>({ terms: [], definitions: [] });
     const [draggedItem, setDraggedItem] = useState<MatchCard | null>(null);
     const [errorMsg, setErrorMsg] = useState('');
+    const [visiblePairIds, setVisiblePairIds] = useState<string[]>([]);
     
     const [history, setHistory] = usePersistence<MatchHistoryItem[]>('matchHistory', []);
     const [savedGames, setSavedGames] = usePersistence<SavedMatchGame[]>('savedMatchGames', []);
@@ -390,6 +393,10 @@ export function Match() {
             originalPairId: `pair-${i}`
         })).sort(() => Math.random() - 0.5);
 
+        // Collect all unique pair IDs and show only the first MAX_VISIBLE_PAIRS
+        const allPairIds = [...new Set(terms.map(t => t.originalPairId))];
+        setVisiblePairIds(allPairIds.slice(0, MAX_VISIBLE_PAIRS));
+
         setGameItems({ terms, definitions });
         setTimeLeft(timeLimit);
         setMatches(0);
@@ -413,6 +420,8 @@ export function Match() {
         if (draggedItem.type === target.type) return;
 
         if (draggedItem.originalPairId === target.originalPairId) {
+            const matchedPairId = draggedItem.originalPairId;
+
             // Match found!
             setGameItems(prev => ({
                 terms: prev.terms.map(t => t.id === draggedItem.id || t.id === target.id ? { ...t, matched: true } : t),
@@ -425,6 +434,21 @@ export function Match() {
                 }
                 return newMatches;
             });
+
+            // After a short delay, swap the matched pair for the next queued one
+            setTimeout(() => {
+                setVisiblePairIds(prev => {
+                    const allPairIds = gameItems.terms.map(t => t.originalPairId);
+                    const queuedPairIds = allPairIds.filter(id => !prev.includes(id));
+                    const nextPairId = queuedPairIds[0];
+
+                    const updated = prev.filter(id => id !== matchedPairId);
+                    if (nextPairId) {
+                        updated.push(nextPairId);
+                    }
+                    return updated;
+                });
+            }, 400);
         }
         
         setDraggedItem(null);
@@ -761,18 +785,15 @@ export function Match() {
             <div className="flex-1 flex gap-8 min-h-0">
                 {/* Terms Column */}
                 <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
-                    {gameItems.terms.map(item => (
+                    {gameItems.terms
+                        .filter(item => visiblePairIds.includes(item.originalPairId))
+                        .filter(item => !item.matched)
+                        .map(item => (
                         <div
                             key={item.id}
                             draggable={!item.matched}
                             onDragStart={() => handleDragStart(item)}
-                            className={`
-                                p-4 rounded-xl shadow-sm border-2 transition-all cursor-grab active:cursor-grabbing text-sm
-                                ${item.matched 
-                                    ? 'opacity-0 pointer-events-none' 
-                                    : 'bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md'
-                                }
-                            `}
+                            className="p-4 rounded-xl shadow-sm border-2 transition-all cursor-grab active:cursor-grabbing text-sm bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md animate-fade-in"
                         >
                             <span className="font-medium text-gray-800 dark:text-gray-200">{item.text}</span>
                         </div>
@@ -781,20 +802,17 @@ export function Match() {
 
                 {/* Definitions Column */}
                 <div className="flex-1 flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
-                     {gameItems.definitions.map(item => (
+                     {gameItems.definitions
+                        .filter(item => visiblePairIds.includes(item.originalPairId))
+                        .filter(item => !item.matched)
+                        .map(item => (
                         <div
                             key={item.id}
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={() => handleDrop(item)}
-                            className={`
-                                p-4 rounded-xl shadow-sm border-2 transition-all text-sm flex items-center min-h-[60px]
-                                ${item.matched 
-                                    ? 'opacity-0 pointer-events-none' 
-                                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800 text-blue-900 dark:text-blue-100 border-dashed'
-                                }
-                            `}
+                            className="p-4 rounded-xl shadow-sm border-2 transition-all text-sm flex items-center min-h-[60px] bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800 text-blue-900 dark:text-blue-100 border-dashed animate-fade-in"
                         >
-                            {item.matched ? null : item.text}
+                            {item.text}
                         </div>
                     ))}
                 </div>
