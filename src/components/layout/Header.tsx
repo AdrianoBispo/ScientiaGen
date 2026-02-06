@@ -55,6 +55,7 @@ export function Header() {
                                     src={currentUser.photoURL} 
                                     alt={currentUser.displayName || 'User'} 
                                     className="w-full h-full object-cover"
+                                    referrerPolicy="no-referrer"
                                 />
                             ) : (
                                 <div className="w-full h-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-gray-400 dark:text-slate-400">
@@ -69,7 +70,7 @@ export function Header() {
                                 <div className="px-4 py-4 flex items-center gap-3 border-b border-gray-100 dark:border-slate-700">
                                     <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-slate-700 shrink-0">
                                          {currentUser.photoURL ? (
-                                            <img src={currentUser.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                                            <img src={currentUser.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                         ) : (
                                             <div className="flex items-center justify-center w-full h-full text-gray-400 dark:text-slate-400">
                                                 <UserIcon size={20} />
