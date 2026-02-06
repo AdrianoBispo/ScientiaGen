@@ -438,9 +438,9 @@ export function Guided() {
                 <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                     <button
                         onClick={() => setCurrentView('main')}
-                        className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline mb-4"
+                        className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white mb-6 transition"
                     >
-                        <ArrowLeft size={18} /> Voltar
+                        <ArrowLeft size={20} /> Voltar
                     </button>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
@@ -551,9 +551,9 @@ export function Guided() {
                 <div className="animate-in fade-in slide-in-from-right-4 duration-300">
                     <button
                         onClick={() => setCurrentView('main')}
-                        className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline mb-4"
+                        className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white mb-6 transition"
                     >
-                        <ArrowLeft size={18} /> Voltar
+                        <ArrowLeft size={20} /> Voltar
                     </button>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700">
@@ -741,7 +741,10 @@ export function Guided() {
                 
                 <div className="max-h-[500px] overflow-y-auto p-4 space-y-3 custom-scrollbar">
                      {history.length === 0 ? (
-                         <p className="p-4 text-center text-gray-500">Histórico vazio.</p>
+                         <div className="text-center py-10 text-gray-400">
+                             <History size={48} className="mx-auto mb-3 opacity-20" />
+                             <p>Histórico vazio.</p>
+                         </div>
                      ) : (
                          history.map(item => (
                              <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-900/50 rounded-lg border border-gray-200 dark:border-slate-700">
