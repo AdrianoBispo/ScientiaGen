@@ -736,6 +736,7 @@ export function Match() {
             <ExerciseCompletion
                 score={matches}
                 total={gameItems.terms.length}
+                timeTaken={timeLimit - timeLeft}
                 onPlayAgain={() => {
                     setGameState('setup');
                     setShowSetup(true);

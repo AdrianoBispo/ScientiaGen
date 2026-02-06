@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { generateMixedQuiz, MistoQuestion, QuestionType } from '../../../services/ai';
-import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, Brain, ArrowLeft, Sparkles, Pencil } from 'lucide-react';
+import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, Brain, ArrowLeft, Sparkles, Pencil, Timer } from 'lucide-react';
 import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
@@ -47,6 +47,30 @@ export function Mixed() {
     const [savedQuizzes, setSavedQuizzes] = usePersistence<SavedMixedQuiz[]>('savedMixedQuizzes', []);
     const [editingQuiz, setEditingQuiz] = useState<SavedMixedQuiz | null>(null);
 
+    // Timer state
+    const [elapsedTime, setElapsedTime] = useState(0);
+    const timerRef = useRef<number | null>(null);
+
+    // Timer effect
+    useEffect(() => {
+        if (currentStep === 'quiz') {
+            timerRef.current = window.setInterval(() => {
+                setElapsedTime(prev => prev + 1);
+            }, 1000);
+        } else {
+            if (timerRef.current) clearInterval(timerRef.current);
+        }
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [currentStep]);
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
     const startQuiz = async () => {
         if (!topic.trim()) return;
         setIsLoading(true);
@@ -59,6 +83,7 @@ export function Mixed() {
                 setScore(0);
                 setFeedback(null);
                 setUserAnswer('');
+                setElapsedTime(0);
             } else {
                 alert('Não foi possível gerar questões suficientes. Tente outro tópico.');
             }
@@ -517,6 +542,7 @@ export function Mixed() {
             setScore(0);
             setFeedback(null);
             setUserAnswer('');
+            setElapsedTime(0);
             setShowSetup(false);
             setResultSaved(false);
             return;
@@ -567,6 +593,7 @@ export function Mixed() {
             <ExerciseCompletion
                 score={score}
                 total={questions.length}
+                timeTaken={elapsedTime}
                 onPlayAgain={() => {
                     setCurrentStep('setup');
                     setShowSetup(true);
@@ -594,7 +621,13 @@ export function Mixed() {
             <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto py-10">
                 <div className="flex justify-between items-center text-sm font-medium text-gray-500 dark:text-gray-400">
                     <span className="uppercase tracking-wider">Questão {currentIndex + 1}</span>
-                    <span>{currentIndex + 1} / {questions.length}</span>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1.5 font-mono text-base font-bold text-gray-700 dark:text-gray-300">
+                            <Timer size={18} />
+                            {formatTime(elapsedTime)}
+                        </div>
+                        <span>{currentIndex + 1} / {questions.length}</span>
+                    </div>
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 min-h-[200px] flex flex-col justify-center">

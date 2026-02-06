@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Quiz } from '../components/Quiz';
 import { generateLearnQuestions, checkAnswer, QuizQuestion, QuestionType } from '../../../services/ai';
-import { ArrowLeft, Save, Play, Trash2, Edit, X, Plus, Brain, Sparkles, Pencil } from 'lucide-react';
+import { ArrowLeft, Save, Play, Trash2, Edit, X, Plus, Brain, Sparkles, Pencil, Timer } from 'lucide-react';
 import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
@@ -46,6 +46,30 @@ export function Learn() {
     const [history, setHistory] = usePersistence<LearnHistoryItem[]>('learnHistory', []);
     const [savedQuizzes, setSavedQuizzes] = usePersistence<SavedLearnQuiz[]>('savedLearnQuizzes', []);
     const [editingQuiz, setEditingQuiz] = useState<SavedLearnQuiz | null>(null);
+
+    // Timer state
+    const [elapsedTime, setElapsedTime] = useState(0);
+    const timerRef = useRef<number | null>(null);
+
+    // Timer effect
+    useEffect(() => {
+        if (quizStarted && !quizFinished) {
+            timerRef.current = window.setInterval(() => {
+                setElapsedTime(prev => prev + 1);
+            }, 1000);
+        } else {
+            if (timerRef.current) clearInterval(timerRef.current);
+        }
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [quizStarted, quizFinished]);
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
 
     const handleSaveHistory = () => {
         const newItem: LearnHistoryItem = {
@@ -338,6 +362,7 @@ export function Learn() {
             setCurrentQuestionIndex(0);
             setScore(0);
             setFeedback(null);
+            setElapsedTime(0);
             setShowSetup(false);
             return;
         }
@@ -345,9 +370,6 @@ export function Learn() {
         if (pendingAction === 'ai') {
             setIsLoading(true);
             setError('');
-            // Close setup immediately implies loading is shown somewhere else?
-            // Or keep setup open with loading state?
-            // ExerciseSetup doesn't have loading prop yet. I should add it or just rely on isLoading state if passed to Start button
             
             try {
                 const generatedQuestions = await generateLearnQuestions(topic, questionCount);
@@ -358,6 +380,7 @@ export function Learn() {
                     setCurrentQuestionIndex(0);
                     setScore(0);
                     setFeedback(null);
+                    setElapsedTime(0);
                     setShowSetup(false);
                 } else {
                     setError('Não foi possível gerar perguntas sobre este tópico. Tente outro.');
@@ -459,6 +482,7 @@ export function Learn() {
             <ExerciseCompletion
                 score={score}
                 total={questions.length}
+                timeTaken={elapsedTime}
                 onPlayAgain={() => {
                     setQuizStarted(false);
                     setQuizFinished(false);
@@ -480,12 +504,18 @@ export function Learn() {
     if (quizStarted) {
         return (
             <div className="w-full max-w-4xl mx-auto">
-                <button 
-                    onClick={() => setQuizStarted(false)} 
-                    className="mb-6 flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
-                >
-                    <ArrowLeft size={20} className="mr-2" /> Voltar
-                </button>
+                <div className="mb-6 flex items-center justify-between">
+                    <button 
+                        onClick={() => setQuizStarted(false)} 
+                        className="flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+                    >
+                        <ArrowLeft size={20} className="mr-2" /> Voltar
+                    </button>
+                    <div className="flex items-center gap-2 font-mono text-lg font-bold text-gray-700 dark:text-gray-300">
+                        <Timer size={20} />
+                        {formatTime(elapsedTime)}
+                    </div>
+                </div>
                 <Quiz 
                     currentStep={currentQuestionIndex + 1}
                     totalSteps={questions.length}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Save, Home, Trophy, Star } from 'lucide-react';
+import { RefreshCw, Save, Home, Trophy, Star, Clock } from 'lucide-react';
 
 interface ExerciseCompletionProps {
   score: number;
@@ -8,6 +8,7 @@ interface ExerciseCompletionProps {
   onSave?: () => void;
   onExit: () => void;
   isSaved?: boolean;
+  timeTaken?: number; // elapsed time in seconds
 }
 
 export function ExerciseCompletion({
@@ -16,9 +17,19 @@ export function ExerciseCompletion({
   onPlayAgain,
   onSave,
   onExit,
-  isSaved = false
+  isSaved = false,
+  timeTaken
 }: ExerciseCompletionProps) {
   const percentage = Math.round((score / total) * 100);
+  
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0) {
+      return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+    }
+    return `${secs}s`;
+  };
   
   let message = "Bom esforço!";
   let colorClass = "text-yellow-500";
@@ -61,6 +72,14 @@ export function ExerciseCompletion({
             style={{ width: `${percentage}%` }}
           />
         </div>
+
+        {/* Time Taken */}
+        {timeTaken !== undefined && (
+          <div className="flex items-center justify-center gap-2 mb-8 text-gray-500 dark:text-gray-400">
+            <Clock className="w-5 h-5" />
+            <span className="text-sm font-medium">Tempo: {formatTime(timeTaken)}</span>
+          </div>
+        )}
 
         <div className="space-y-3">
           <button

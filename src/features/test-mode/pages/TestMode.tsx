@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { generateTestQuestions, TestQuestion } from '../../../services/ai';
-import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, AlertCircle, Brain, ArrowLeft, Sparkles, Pencil } from 'lucide-react';
+import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, AlertCircle, Brain, ArrowLeft, Sparkles, Pencil, Timer } from 'lucide-react';
 import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
@@ -51,6 +51,30 @@ export function TestMode() {
     const [savedQuizzes, setSavedQuizzes] = usePersistence<SavedTestQuiz[]>('savedTestQuizzes', []);
     const [editingQuiz, setEditingQuiz] = useState<SavedTestQuiz | null>(null);
 
+    // Timer state
+    const [elapsedTime, setElapsedTime] = useState(0);
+    const timerRef = useRef<number | null>(null);
+
+    // Timer effect
+    useEffect(() => {
+        if (gameStatus === 'playing') {
+            timerRef.current = window.setInterval(() => {
+                setElapsedTime(prev => prev + 1);
+            }, 1000);
+        } else {
+            if (timerRef.current) clearInterval(timerRef.current);
+        }
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [gameStatus]);
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
     const handleStartGame = async () => {
         if (!topic.trim()) return;
         setIsLoading(true);
@@ -61,6 +85,7 @@ export function TestMode() {
                 setGameStatus('playing');
                 setCurrentQuestionIndex(0);
                 setScore(0);
+                setElapsedTime(0);
                 resetQuestionState();
             } else {
                 alert('Não foi possível gerar questões. Tente outro tópico.');
@@ -499,6 +524,7 @@ export function TestMode() {
             setGameStatus('playing');
             setCurrentQuestionIndex(0);
             setScore(0);
+            setElapsedTime(0);
             resetQuestionState();
             setShowSetup(false);
             setResultSaved(false);
@@ -550,6 +576,7 @@ export function TestMode() {
             <ExerciseCompletion
                 score={score}
                 total={questions.length}
+                timeTaken={elapsedTime}
                 onPlayAgain={() => {
                     setGameStatus('setup');
                     setShowSetup(true);
@@ -577,7 +604,13 @@ export function TestMode() {
             <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto py-10">
                 <div className="flex justify-between items-center text-sm font-medium text-gray-500 dark:text-gray-400">
                     <span className="uppercase tracking-wider">Modo Teste</span>
-                    <span>{currentQuestionIndex + 1} / {questions.length}</span>
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1.5 font-mono text-base font-bold text-gray-700 dark:text-gray-300">
+                            <Timer size={18} />
+                            {formatTime(elapsedTime)}
+                        </div>
+                        <span>{currentQuestionIndex + 1} / {questions.length}</span>
+                    </div>
                 </div>
 
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 min-h-[160px] flex flex-col justify-center">

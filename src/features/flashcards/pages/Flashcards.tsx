@@ -10,7 +10,7 @@ import {
   Plus, Brain, Loader2, Folder, MoreVertical, 
   Volume2, X, ChevronLeft, ChevronRight, CheckSquare, 
   Square, Eye, Pencil, Trash2, ArrowLeft, FileSpreadsheet, Upload, 
-  Sparkles
+  Sparkles, Timer
 } from 'lucide-react';
 
 interface FlashcardSet {
@@ -75,6 +75,35 @@ export function Flashcards() {
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Timer state
+  const [studyElapsedTime, setStudyElapsedTime] = useState(0);
+  const studyTimerRef = useRef<number | null>(null);
+
+  // Timer effect for study mode
+  useEffect(() => {
+      if (currentView === 'study' && activeSetId) {
+          const activeSet = sets.find(s => s.id === activeSetId);
+          if (activeSet && viewCardIndex < activeSet.cards.length) {
+              studyTimerRef.current = window.setInterval(() => {
+                  setStudyElapsedTime(prev => prev + 1);
+              }, 1000);
+          } else {
+              if (studyTimerRef.current) clearInterval(studyTimerRef.current);
+          }
+      } else {
+          if (studyTimerRef.current) clearInterval(studyTimerRef.current);
+      }
+      return () => {
+          if (studyTimerRef.current) clearInterval(studyTimerRef.current);
+      };
+  }, [currentView, activeSetId, viewCardIndex, sets]);
+
+  const formatTime = (seconds: number) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   // Handlers
   const handleSpreadsheetImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -680,6 +709,7 @@ export function Flashcards() {
                       setCurrentView('study');
                       setViewCardIndex(0);
                       setStudyScore(0);
+                      setStudyElapsedTime(0);
                       setIsStudyCardFlipped(false);
                       setShowStudySetup(false);
                   }}
@@ -707,9 +737,15 @@ export function Flashcards() {
           return (
               <div className="w-full h-full flex flex-col items-center p-6">
                    <div className="w-full max-w-6xl mb-6">
-                        <button onClick={() => { setCurrentView('sets'); setActiveSetId(null); }} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white transition mb-4">
-                            <ArrowLeft size={20} /> Voltar para Cartões
-                        </button>
+                        <div className="flex items-center justify-between mb-4">
+                            <button onClick={() => { setCurrentView('sets'); setActiveSetId(null); }} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 dark:hover:text-white transition">
+                                <ArrowLeft size={20} /> Voltar para Cartões
+                            </button>
+                            <div className="flex items-center gap-2 font-mono text-lg font-bold text-gray-700 dark:text-gray-300">
+                                <Timer size={20} />
+                                {formatTime(studyElapsedTime)}
+                            </div>
+                        </div>
                         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">{activeSet.title}</h1>
                    </div>
                    
@@ -718,6 +754,7 @@ export function Flashcards() {
                             <ExerciseCompletion
                                 score={studyScore}
                                 total={activeSet.cards.length}
+                                timeTaken={studyElapsedTime}
                                 onPlayAgain={() => {
                                     setViewCardIndex(0);
                                     setIsStudyCardFlipped(false);
