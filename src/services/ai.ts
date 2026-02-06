@@ -1,10 +1,24 @@
-import { GoogleGenAI } from "@google/genai";
+// Helper to call our serverless proxy at /api/gemini
+// The API key is stored server-side only (GEMINI_API_KEY), never exposed to the browser.
+async function callGemini(contents: any, config?: any, model?: string): Promise<string> {
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents, config, model }),
+  });
 
-// Use the API key from the environment configuration
-// We use process.env because it's defined in vite.config.ts
-const apiKey = process.env.VITE_GEMINI_API_KEY || '';
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `API request failed with status ${response.status}`);
+  }
 
-const ai = new GoogleGenAI({ apiKey });
+  const data = await response.json();
+  if (!data.text) {
+    throw new Error('No response from AI');
+  }
+
+  return data.text;
+}
 
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
@@ -27,18 +41,7 @@ export async function generateFlashcards(topic: string, count: number = 5, diffi
     Responda APENAS com um objeto JSON válido contendo uma chave "cards" que é uma lista de objetos.
     Exemplo: { "cards": [{ "term": "React", "definition": "Biblioteca JS..." }] }`;
 
-    const result = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
-    });
-
-    const text = result.text;
-    if (!text) {
-        throw new Error("No response from AI");
-    }
+    const text = await callGemini(prompt, { responseMimeType: 'application/json' });
 
     const responseData = JSON.parse(text);
     
@@ -68,13 +71,7 @@ export async function generateLearnQuestions(topic: string, count: number = 5, d
     try {
         const diffLabel = difficultyLabels[difficulty];
         const prompt = `Gere um quiz com ${count} questões abertas sobre "${topic}" com nível de dificuldade ${diffLabel}. Forneça a resposta correta e concisa para cada uma. Gere uma resposta JSON com uma chave "questions" contendo uma matriz de objetos, cada um com "question" e "answer".`;
-        const result = await ai.models.generateContent({
-            model: 'gemini-2.5-flash', contents: prompt,
-            config: { responseMimeType: 'application/json' },
-        });
-        
-        const text = result.text;
-        if (!text) throw new Error("No response from AI");
+        const text = await callGemini(prompt, { responseMimeType: 'application/json' });
 
         const responseData = JSON.parse(text);
         if (responseData && responseData.questions && Array.isArray(responseData.questions)) {
@@ -99,12 +96,7 @@ export async function generateMixedQuiz(topic: string, count: number = 5, diffic
   try {
       const diffLabel = difficultyLabels[difficulty];
       const prompt = `Gere um quiz misto com ${count} questões sobre "${topic}" com nível de dificuldade ${diffLabel}. Inclua tipos 'MULTIPLE_CHOICE', 'FILL_IN_BLANK' e 'OPEN_ENDED'. Para múltipla escolha, forneça 4 opções. Para preenchimento, use '___'. Gere um JSON com uma chave "questions" contendo uma matriz de objetos com "question", "type", "answer", e "options" (se aplicável).`;
-      const result = await ai.models.generateContent({
-          model: 'gemini-2.5-flash', contents: prompt,
-          config: { responseMimeType: 'application/json' },
-      });
-      const text = result.text;
-      if (!text) throw new Error("No response from AI");
+      const text = await callGemini(prompt, { responseMimeType: 'application/json' });
       
       const responseData = JSON.parse(text);
 
@@ -139,16 +131,7 @@ export async function generateTestQuestions(topic: string, count: number = 5, di
         
         Responda APENAS com um objeto JSON válido contendo uma chave "questions" que é uma lista de objetos.`;
 
-        const result = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: 'application/json',
-            },
-        });
-
-        const text = result.text;
-        if (!text) throw new Error("No response from AI");
+        const text = await callGemini(prompt, { responseMimeType: 'application/json' });
 
         const responseData = JSON.parse(text);
 
@@ -169,12 +152,7 @@ export async function checkAnswer(question: string, userAnswer: string, correctA
      const prompt = `Questão: "${question}"\nResposta correta: "${correctAnswer}"\nResposta do usuário: "${userAnswer}"\nTipo: "${type}"\n\nAvalie se a resposta do usuário está correta. Retorne um JSON com: { "isCorrect": boolean, "feedback": "breve explicação" }. Seja leniente com erros de digitação leves e variações de frase.`;
      
      try {
-        const result = await ai.models.generateContent({
-             model: 'gemini-2.5-flash', contents: prompt,
-             config: { responseMimeType: 'application/json' },
-        });
-        const text = result.text;
-        if (!text) throw new Error("No response from AI");
+        const text = await callGemini(prompt, { responseMimeType: 'application/json' });
         return JSON.parse(text);
      } catch (e) {
          console.error("Error checking answer", e);
@@ -237,19 +215,10 @@ export async function solveProblem(problem: string, imageData?: string, mimeType
              required: ['title', 'steps', 'finalAnswer'],
         };
 
-        const result = await ai.models.generateContent({
-            model: 'gemini-2.5-flash', 
-            contents: [{ parts: parts }] as any,
-             // Note: GoogleGenAI JS SDK schema definition might be slightly different or handled via responseSchema directly
-             // For simple JSON mode we just ask for JSON mimeType, but let's try to be specific if possible or rely on the prompt + mimeType
-            config: { 
-                responseMimeType: 'application/json',
-                responseSchema: solutionSchema as any
-            },
-        });
-
-        const text = result.text;
-        if (!text) throw new Error("No response from AI");
+        const text = await callGemini(
+            [{ parts: parts }],
+            { responseMimeType: 'application/json', responseSchema: solutionSchema }
+        );
         
         return JSON.parse(text) as Solution;
     } catch (error) {
