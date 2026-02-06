@@ -65,6 +65,7 @@ export function Match() {
 
     const timerRef = useRef<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const allPairIdsRef = useRef<string[]>([]);
 
     // Spreadsheet Import State
     const [isImporting, setIsImporting] = useState(false);
@@ -395,6 +396,7 @@ export function Match() {
 
         // Collect all unique pair IDs and show only the first MAX_VISIBLE_PAIRS
         const allPairIds = [...new Set(terms.map(t => t.originalPairId))];
+        allPairIdsRef.current = allPairIds;
         setVisiblePairIds(allPairIds.slice(0, MAX_VISIBLE_PAIRS));
 
         setGameItems({ terms, definitions });
@@ -438,8 +440,7 @@ export function Match() {
             // After a short delay, swap the matched pair for the next queued one
             setTimeout(() => {
                 setVisiblePairIds(prev => {
-                    const allPairIds = gameItems.terms.map(t => t.originalPairId);
-                    const queuedPairIds = allPairIds.filter(id => !prev.includes(id));
+                    const queuedPairIds = allPairIdsRef.current.filter(id => !prev.includes(id));
                     const nextPairId = queuedPairIds[0];
 
                     const updated = prev.filter(id => id !== matchedPairId);
