@@ -7,7 +7,8 @@ import { parseSpreadsheet, getAcceptString, isValidSpreadsheetFile } from '../..
 import { 
   Plus, Brain, Loader2, Folder, MoreVertical, 
   Volume2, X, ChevronLeft, ChevronRight, CheckSquare, 
-  Square, Eye, Pencil, Trash2, ArrowLeft, FileSpreadsheet, Upload 
+  Square, Eye, Pencil, Trash2, ArrowLeft, FileSpreadsheet, Upload, 
+  Sparkles
 } from 'lucide-react';
 
 interface FlashcardSet {
@@ -247,7 +248,7 @@ export function Flashcards() {
           className="p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-700 flex flex-col items-start text-left gap-4 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
         >
           <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl group-hover:scale-110 transition-transform">
-            <Brain size={28} className="text-blue-600 dark:text-blue-400" />
+            <Sparkles size={28} className="text-blue-600 dark:text-blue-400" />
           </div>
           <div>
             <h3 className="font-semibold text-lg text-gray-800 dark:text-white mb-1">Gerar com IA</h3>
