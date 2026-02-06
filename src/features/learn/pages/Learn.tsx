@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Quiz } from '../components/Quiz';
-import { generateLearnQuestions, checkAnswer, QuizQuestion, QuestionType } from '../../../services/ai';
+import { generateLearnQuestions, checkAnswer, QuizQuestion, QuestionType, Difficulty } from '../../../services/ai';
 import { ArrowLeft, Save, Play, Trash2, Edit, X, Plus, Brain, Sparkles, Pencil, Timer } from 'lucide-react';
 import { HistoryReportModal, QuestionResult } from '../../../components/exercises/HistoryReportModal';
 import { usePersistence } from '../../../hooks/usePersistence';
@@ -40,6 +40,7 @@ export function Learn() {
     const [currentView, setCurrentView] = useState<'setup' | 'ai' | 'manual'>('setup');
     const [showSetup, setShowSetup] = useState(false);
     const [questionCount, setQuestionCount] = useState(5);
+    const [difficulty, setDifficulty] = useState<Difficulty>('medium');
     const [pendingAction, setPendingAction] = useState<'ai' | 'saved' | null>(null);
     const [selectedSavedQuiz, setSelectedSavedQuiz] = useState<SavedLearnQuiz | null>(null);
 
@@ -381,7 +382,7 @@ export function Learn() {
             setError('');
             
             try {
-                const generatedQuestions = await generateLearnQuestions(topic, questionCount);
+                const generatedQuestions = await generateLearnQuestions(topic, questionCount, difficulty);
                 if (generatedQuestions && generatedQuestions.length > 0) {
                     setQuestions(generatedQuestions);
                     setQuizStarted(true);
@@ -490,6 +491,17 @@ export function Learn() {
                      { label: '10 Questões', value: 10 },
                  ],
                  onChange: (val: any) => setQuestionCount(Number(val))
+             });
+             configurations.push({
+                 label: 'Dificuldade',
+                 value: difficulty,
+                 type: 'select',
+                 options: [
+                     { label: 'Fácil', value: 'easy' },
+                     { label: 'Médio', value: 'medium' },
+                     { label: 'Difícil', value: 'hard' },
+                 ],
+                 onChange: (val: any) => setDifficulty(val as Difficulty)
              });
         } else if (pendingAction === 'saved' && selectedSavedQuiz) {
              configurations.push({

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { usePersistence } from '../../../hooks/usePersistence';
 import { Card } from '../components/Card';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
-import { generateFlashcards, FlashcardData } from '../../../services/ai';
+import { generateFlashcards, FlashcardData, Difficulty } from '../../../services/ai';
 import { parseSpreadsheet, getAcceptString, isValidSpreadsheetFile } from '../../../utils/spreadsheetParser';
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
 import { ExerciseCompletion } from '../../../components/exercises/ExerciseCompletion';
@@ -42,6 +42,8 @@ export function Flashcards() {
 
   // Generator State
   const [genTopic, setGenTopic] = useState('');
+  const [genCardCount, setGenCardCount] = useState(6);
+  const [genDifficulty, setGenDifficulty] = useState<Difficulty>('medium');
   const [generatedCards, setGeneratedCards] = useState<FlashcardData[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -148,7 +150,7 @@ export function Flashcards() {
     if (!genTopic.trim()) return;
     setIsGenerating(true);
     try {
-      const cards = await generateFlashcards(genTopic, 6);
+      const cards = await generateFlashcards(genTopic, genCardCount, genDifficulty);
       setGeneratedCards(cards);
       setSaveSetName(`Cartões: ${genTopic}`);
       setSelectedCardsIndices(cards.map((_, i) => i)); 
@@ -395,6 +397,38 @@ export function Flashcards() {
                     className="w-full p-4 min-h-[120px] bg-transparent outline-none text-gray-800 dark:text-white resize-none"
                     disabled={isGenerating}
                 />
+                
+                {/* Configuration Controls */}
+                <div className="flex flex-col sm:flex-row gap-3 px-4 py-3 border-t border-gray-100 dark:border-slate-700">
+                    <div className="flex flex-col gap-1 flex-1">
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Quantidade</label>
+                        <select
+                            value={genCardCount}
+                            onChange={(e) => setGenCardCount(Number(e.target.value))}
+                            disabled={isGenerating}
+                            className="px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        >
+                            <option value={3}>3 Cartões</option>
+                            <option value={6}>6 Cartões</option>
+                            <option value={10}>10 Cartões</option>
+                            <option value={15}>15 Cartões</option>
+                        </select>
+                    </div>
+                    <div className="flex flex-col gap-1 flex-1">
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Dificuldade</label>
+                        <select
+                            value={genDifficulty}
+                            onChange={(e) => setGenDifficulty(e.target.value as Difficulty)}
+                            disabled={isGenerating}
+                            className="px-3 py-1.5 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        >
+                            <option value="easy">Fácil</option>
+                            <option value="medium">Médio</option>
+                            <option value="hard">Difícil</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div className="flex justify-end p-2 border-t border-gray-100 dark:border-slate-700">
                     <button 
                         onClick={handleGenerate}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateTestQuestions, TestQuestion } from '../../../services/ai';
+import { generateTestQuestions, TestQuestion, Difficulty } from '../../../services/ai';
 import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, AlertCircle, Brain, ArrowLeft, Sparkles, Pencil, Timer } from 'lucide-react';
 import { HistoryReportModal, QuestionResult } from '../../../components/exercises/HistoryReportModal';
 import { usePersistence } from '../../../hooks/usePersistence';
@@ -34,6 +34,7 @@ export function TestMode() {
     const [pendingAction, setPendingAction] = useState<'ai' | 'saved' | null>(null);
     const [selectedSavedQuiz, setSelectedSavedQuiz] = useState<SavedTestQuiz | null>(null);
     const [questionCount, setQuestionCount] = useState(5);
+    const [difficulty, setDifficulty] = useState<Difficulty>('medium');
     const [resultSaved, setResultSaved] = useState(false);
     
     // Game State
@@ -85,7 +86,7 @@ export function TestMode() {
         if (!topic.trim()) return;
         setIsLoading(true);
         try {
-            const generatedQuestions = await generateTestQuestions(topic);
+            const generatedQuestions = await generateTestQuestions(topic, questionCount, difficulty);
             if (generatedQuestions.length > 0) {
                 setQuestions(generatedQuestions);
                 setGameStatus('playing');
@@ -566,6 +567,17 @@ export function TestMode() {
                     { label: '10 Questões', value: 10 },
                 ],
                 onChange: (val: any) => setQuestionCount(Number(val))
+            });
+            configurations.push({
+                label: 'Dificuldade',
+                value: difficulty,
+                type: 'select',
+                options: [
+                    { label: 'Fácil', value: 'easy' },
+                    { label: 'Médio', value: 'medium' },
+                    { label: 'Difícil', value: 'hard' },
+                ],
+                onChange: (val: any) => setDifficulty(val as Difficulty)
             });
         } else if (pendingAction === 'saved' && selectedSavedQuiz) {
             configurations.push({

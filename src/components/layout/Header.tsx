@@ -4,6 +4,7 @@ import { useAuth } from '../../features/auth/contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoginModal } from '../../features/auth/components/LoginModal';
 import { RegisterModal } from '../../features/auth/components/RegisterModal';
+import { SettingsModal } from './SettingsModal';
 import { 
     BarChart, 
     Settings, 
@@ -19,6 +20,7 @@ export function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     // Close menu when clicking outside
@@ -97,7 +99,10 @@ export function Header() {
                                             setIsMenuOpen(false);
                                         }}
                                     />
-                                    <MenuItem icon={<Settings size={20} />} label="Configurações" />
+                                    <MenuItem icon={<Settings size={20} />} label="Configurações" onClick={() => {
+                                        setIsSettingsModalOpen(true);
+                                        setIsMenuOpen(false);
+                                    }} />
                                     <MenuItem 
                                         icon={theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />} 
                                         label={theme === 'dark' ? "Modo claro" : "Modo escuro"}
@@ -141,6 +146,12 @@ export function Header() {
                     setIsRegisterModalOpen(false);
                     setIsLoginModalOpen(true);
                 }}
+            />
+
+            {/* Settings Modal */}
+            <SettingsModal
+                isOpen={isSettingsModalOpen}
+                onClose={() => setIsSettingsModalOpen(false)}
             />
         </>
     );

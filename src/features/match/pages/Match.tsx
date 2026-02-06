@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateFlashcards, FlashcardData } from '../../../services/ai';
+import { generateFlashcards, FlashcardData, Difficulty } from '../../../services/ai';
 import { parseSpreadsheet, getAcceptString, isValidSpreadsheetFile } from '../../../utils/spreadsheetParser';
 import { Play, Settings, RefreshCw, Timer, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, Brain, ArrowLeft, FileSpreadsheet, Loader2, Sparkles, Pencil } from 'lucide-react';
 import { HistoryReportModal } from '../../../components/exercises/HistoryReportModal';
@@ -46,6 +46,7 @@ export function Match() {
     const [showSetup, setShowSetup] = useState(false);
     const [pendingAction, setPendingAction] = useState<'ai' | 'saved' | null>(null);
     const [selectedSavedGame, setSelectedSavedGame] = useState<SavedMatchGame | null>(null);
+    const [difficulty, setDifficulty] = useState<Difficulty>('medium');
     const [resultSaved, setResultSaved] = useState(false);
     
     // Manual creation state
@@ -366,7 +367,7 @@ export function Match() {
         setErrorMsg('');
         
         try {
-            const cards = await generateFlashcards(topic, pairCount);
+            const cards = await generateFlashcards(topic, pairCount, difficulty);
             if (cards.length < 3) {
                 setErrorMsg("Não foi possível gerar pares suficientes. Tente outro tópico.");
                 setGameState('setup');
@@ -586,6 +587,17 @@ export function Match() {
                     { label: '12 Pares', value: 12 },
                 ],
                 onChange: (val: any) => setPairCount(Number(val))
+            });
+            configurations.push({
+                label: 'Dificuldade',
+                value: difficulty,
+                type: 'select',
+                options: [
+                    { label: 'Fácil', value: 'easy' },
+                    { label: 'Médio', value: 'medium' },
+                    { label: 'Difícil', value: 'hard' },
+                ],
+                onChange: (val: any) => setDifficulty(val as Difficulty)
             });
             configurations.push({
                 label: 'Tempo Limite',

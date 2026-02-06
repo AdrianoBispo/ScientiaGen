@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { generateMixedQuiz, MistoQuestion, QuestionType } from '../../../services/ai';
+import { generateMixedQuiz, MistoQuestion, QuestionType, Difficulty } from '../../../services/ai';
 import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, Brain, ArrowLeft, Sparkles, Pencil, Timer } from 'lucide-react';
 import { HistoryReportModal, QuestionResult } from '../../../components/exercises/HistoryReportModal';
 import { usePersistence } from '../../../hooks/usePersistence';
@@ -39,6 +39,7 @@ export function Mixed() {
     const [pendingAction, setPendingAction] = useState<'ai' | 'saved' | null>(null);
     const [selectedSavedQuiz, setSelectedSavedQuiz] = useState<SavedMixedQuiz | null>(null);
     const [questionCount, setQuestionCount] = useState(5);
+    const [difficulty, setDifficulty] = useState<Difficulty>('medium');
     const [resultSaved, setResultSaved] = useState(false);
     
     // Manual creation state
@@ -81,7 +82,7 @@ export function Mixed() {
         if (!topic.trim()) return;
         setIsLoading(true);
         try {
-            const generatedQuestions = await generateMixedQuiz(topic, 5);
+            const generatedQuestions = await generateMixedQuiz(topic, questionCount, difficulty);
             if (generatedQuestions.length > 0) {
                 setQuestions(generatedQuestions);
                 setCurrentStep('quiz');
@@ -584,6 +585,17 @@ export function Mixed() {
                     { label: '10 Questões', value: 10 },
                 ],
                 onChange: (val: any) => setQuestionCount(Number(val))
+            });
+            configurations.push({
+                label: 'Dificuldade',
+                value: difficulty,
+                type: 'select',
+                options: [
+                    { label: 'Fácil', value: 'easy' },
+                    { label: 'Médio', value: 'medium' },
+                    { label: 'Difícil', value: 'hard' },
+                ],
+                onChange: (val: any) => setDifficulty(val as Difficulty)
             });
         } else if (pendingAction === 'saved' && selectedSavedQuiz) {
             configurations.push({

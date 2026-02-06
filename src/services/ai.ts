@@ -6,14 +6,23 @@ const apiKey = process.env.VITE_GEMINI_API_KEY || '';
 
 const ai = new GoogleGenAI({ apiKey });
 
+export type Difficulty = 'easy' | 'medium' | 'hard';
+
+const difficultyLabels: Record<Difficulty, string> = {
+  easy: 'fácil (conceitos básicos e introdutórios)',
+  medium: 'médio (conceitos intermediários com mais profundidade)',
+  hard: 'difícil (conceitos avançados e detalhados)',
+};
+
 export interface FlashcardData {
   term: string; 
   definition: string;
 }
 
-export async function generateFlashcards(topic: string, count: number = 5): Promise<FlashcardData[]> {
+export async function generateFlashcards(topic: string, count: number = 5, difficulty: Difficulty = 'medium'): Promise<FlashcardData[]> {
   try {
-    const prompt = `Gere ${count} flashcards sobre "${topic}". 
+    const diffLabel = difficultyLabels[difficulty];
+    const prompt = `Gere ${count} flashcards sobre "${topic}" com nível de dificuldade ${diffLabel}. 
     Para cada flashcard, forneça um "term" (termo/conceito) e uma "definition" (definição/explicação).
     Responda APENAS com um objeto JSON válido contendo uma chave "cards" que é uma lista de objetos.
     Exemplo: { "cards": [{ "term": "React", "definition": "Biblioteca JS..." }] }`;
@@ -55,9 +64,10 @@ export interface QuizQuestion {
   answer: string;
 }
 
-export async function generateLearnQuestions(topic: string, count: number = 5): Promise<QuizQuestion[]> {
+export async function generateLearnQuestions(topic: string, count: number = 5, difficulty: Difficulty = 'medium'): Promise<QuizQuestion[]> {
     try {
-        const prompt = `Gere um quiz com ${count} questões abertas sobre "${topic}". Forneça a resposta correta e concisa para cada uma. Gere uma resposta JSON com uma chave "questions" contendo uma matriz de objetos, cada um com "question" e "answer".`;
+        const diffLabel = difficultyLabels[difficulty];
+        const prompt = `Gere um quiz com ${count} questões abertas sobre "${topic}" com nível de dificuldade ${diffLabel}. Forneça a resposta correta e concisa para cada uma. Gere uma resposta JSON com uma chave "questions" contendo uma matriz de objetos, cada um com "question" e "answer".`;
         const result = await ai.models.generateContent({
             model: 'gemini-2.5-flash', contents: prompt,
             config: { responseMimeType: 'application/json' },
@@ -85,9 +95,10 @@ export interface MistoQuestion {
   options?: string[];
 }
 
-export async function generateMixedQuiz(topic: string, count: number = 5): Promise<MistoQuestion[]> {
+export async function generateMixedQuiz(topic: string, count: number = 5, difficulty: Difficulty = 'medium'): Promise<MistoQuestion[]> {
   try {
-      const prompt = `Gere um quiz misto com ${count} questões sobre "${topic}". Inclua tipos 'MULTIPLE_CHOICE', 'FILL_IN_BLANK' e 'OPEN_ENDED'. Para múltipla escolha, forneça 4 opções. Para preenchimento, use '___'. Gere um JSON com uma chave "questions" contendo uma matriz de objetos com "question", "type", "answer", e "options" (se aplicável).`;
+      const diffLabel = difficultyLabels[difficulty];
+      const prompt = `Gere um quiz misto com ${count} questões sobre "${topic}" com nível de dificuldade ${diffLabel}. Inclua tipos 'MULTIPLE_CHOICE', 'FILL_IN_BLANK' e 'OPEN_ENDED'. Para múltipla escolha, forneça 4 opções. Para preenchimento, use '___'. Gere um JSON com uma chave "questions" contendo uma matriz de objetos com "question", "type", "answer", e "options" (se aplicável).`;
       const result = await ai.models.generateContent({
           model: 'gemini-2.5-flash', contents: prompt,
           config: { responseMimeType: 'application/json' },
@@ -116,9 +127,10 @@ export interface TestQuestion {
     explanation?: string;
 }
 
-export async function generateTestQuestions(topic: string, count: number = 5): Promise<TestQuestion[]> {
+export async function generateTestQuestions(topic: string, count: number = 5, difficulty: Difficulty = 'medium'): Promise<TestQuestion[]> {
     try {
-        const prompt = `Gere um teste de múltipla escolha com ${count} perguntas sobre "${topic}". 
+        const diffLabel = difficultyLabels[difficulty];
+        const prompt = `Gere um teste de múltipla escolha com ${count} perguntas sobre "${topic}" com nível de dificuldade ${diffLabel}. 
         Para cada pergunta, forneça:
         - "question": o texto da pergunta
         - "options": uma lista de 4 opções de resposta (strings)
