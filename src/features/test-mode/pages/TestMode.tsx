@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateTestQuestions, TestQuestion } from '../../../services/ai';
 import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, AlertCircle, Brain, ArrowLeft, Sparkles, Pencil, Timer } from 'lucide-react';
+import { HistoryReportModal, QuestionResult } from '../../../components/exercises/HistoryReportModal';
 import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
@@ -13,6 +14,8 @@ interface TestHistoryItem {
     topic: string;
     score: number;
     total: number;
+    questionResults?: QuestionResult[];
+    timeTaken?: number;
 }
 
 interface SavedTestQuiz {
@@ -51,6 +54,8 @@ export function TestMode() {
     const [history, setHistory] = usePersistence<TestHistoryItem[]>('testHistory', []);
     const [savedQuizzes, setSavedQuizzes] = usePersistence<SavedTestQuiz[]>('savedTestQuizzes', []);
     const [editingQuiz, setEditingQuiz] = useState<SavedTestQuiz | null>(null);
+    const [answeredResults, setAnsweredResults] = useState<QuestionResult[]>([]);
+    const [viewingReport, setViewingReport] = useState<TestHistoryItem | null>(null);
 
     // Timer state
     const [elapsedTime, setElapsedTime] = useState(0);
@@ -87,6 +92,7 @@ export function TestMode() {
                 setCurrentQuestionIndex(0);
                 setScore(0);
                 setElapsedTime(0);
+                setAnsweredResults([]);
                 resetQuestionState();
             } else {
                 alert('Não foi possível gerar questões. Tente outro tópico.');
@@ -114,9 +120,17 @@ export function TestMode() {
         
         setIsAnswered(true);
         const currentQuestion = questions[currentQuestionIndex];
-        if (selectedOption === currentQuestion.correctAnswer) {
+        const isCorrect = selectedOption === currentQuestion.correctAnswer;
+        if (isCorrect) {
             setScore(score + 1);
         }
+
+        setAnsweredResults(prev => [...prev, {
+            question: currentQuestion.question,
+            userAnswer: selectedOption,
+            correctAnswer: currentQuestion.correctAnswer,
+            isCorrect
+        }]);
     };
 
     const handleNextQuestion = () => {
@@ -135,10 +149,10 @@ export function TestMode() {
             id: crypto.randomUUID(),
             date: new Date().toISOString(),
             topic: topic,
-            score: score + (isAnswered && selectedOption === questions[currentQuestionIndex].correctAnswer ? 1 : 0), // Add last point if correct? 
-            // Wait, score is updated on confirm. If user confirmed last question, score is already updated.
-            // My handleConfirmAnswer updates score. So score is correct.
-            total: questions.length
+            score: score + (isAnswered && selectedOption === questions[currentQuestionIndex].correctAnswer ? 1 : 0),
+            total: questions.length,
+            questionResults: [...answeredResults],
+            timeTaken: elapsedTime
         };
         // Verify if confirm was called for last question
         // If finishGame called from handleNextQuestion, confirm was already done.
@@ -526,6 +540,7 @@ export function TestMode() {
             setCurrentQuestionIndex(0);
             setScore(0);
             setElapsedTime(0);
+            setAnsweredResults([]);
             resetQuestionState();
             setShowSetup(false);
             setResultSaved(false);
@@ -743,6 +758,7 @@ export function TestMode() {
                     onEditSaved={handleEditSavedQuiz}
                     onDeleteSaved={handleDeleteSavedQuiz}
                     onDeleteHistory={handleDeleteHistoryItem}
+                    onClickHistory={(item) => setViewingReport(item)}
                     getSavedTitle={(item) => item.title}
                     getSavedSubtitle={(item) => `${item.questions.length} questões`}
                     getSavedDate={(item) => item.createdAt}
@@ -753,6 +769,17 @@ export function TestMode() {
              </div>
              
              {renderEditQuizModal()}
+
+             <HistoryReportModal
+                isOpen={!!viewingReport}
+                onClose={() => setViewingReport(null)}
+                title={viewingReport?.topic || ''}
+                date={viewingReport?.date || ''}
+                score={viewingReport?.score}
+                total={viewingReport?.total}
+                timeTaken={viewingReport?.timeTaken}
+                questionResults={viewingReport?.questionResults}
+             />
         </div>
     );
 }

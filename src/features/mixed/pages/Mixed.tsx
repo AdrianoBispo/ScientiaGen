@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateMixedQuiz, MistoQuestion, QuestionType } from '../../../services/ai';
 import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, Brain, ArrowLeft, Sparkles, Pencil, Timer } from 'lucide-react';
+import { HistoryReportModal, QuestionResult } from '../../../components/exercises/HistoryReportModal';
 import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
@@ -13,6 +14,8 @@ interface MixedHistoryItem {
     topic: string;
     score: number;
     total: number;
+    questionResults?: QuestionResult[];
+    timeTaken?: number;
 }
 
 interface SavedMixedQuiz {
@@ -47,6 +50,8 @@ export function Mixed() {
     const [history, setHistory] = usePersistence<MixedHistoryItem[]>('mixedHistory', []);
     const [savedQuizzes, setSavedQuizzes] = usePersistence<SavedMixedQuiz[]>('savedMixedQuizzes', []);
     const [editingQuiz, setEditingQuiz] = useState<SavedMixedQuiz | null>(null);
+    const [answeredResults, setAnsweredResults] = useState<QuestionResult[]>([]);
+    const [viewingReport, setViewingReport] = useState<MixedHistoryItem | null>(null);
 
     // Timer state
     const [elapsedTime, setElapsedTime] = useState(0);
@@ -85,6 +90,7 @@ export function Mixed() {
                 setFeedback(null);
                 setUserAnswer('');
                 setElapsedTime(0);
+                setAnsweredResults([]);
             } else {
                 alert('Não foi possível gerar questões suficientes. Tente outro tópico.');
             }
@@ -113,6 +119,13 @@ export function Mixed() {
         });
 
         if (isCorrect) setScore(score + 1);
+
+        setAnsweredResults(prev => [...prev, {
+            question: question.question,
+            userAnswer: userAnswer,
+            correctAnswer: question.answer,
+            isCorrect
+        }]);
     };
 
     const handleNext = () => {
@@ -129,7 +142,9 @@ export function Mixed() {
                 date: new Date().toISOString(),
                 topic: topic,
                 score: score + (feedback?.isCorrect ? 0 : 0), // Score already updated before handleNext unless last q
-                total: questions.length
+                total: questions.length,
+                questionResults: [...answeredResults],
+                timeTaken: elapsedTime
             };
             setHistory([historyItem, ...history]);
         }
@@ -544,6 +559,7 @@ export function Mixed() {
             setFeedback(null);
             setUserAnswer('');
             setElapsedTime(0);
+            setAnsweredResults([]);
             setShowSetup(false);
             setResultSaved(false);
             return;
@@ -753,6 +769,7 @@ export function Mixed() {
                     onEditSaved={handleEditSavedQuiz}
                     onDeleteSaved={handleDeleteSavedQuiz}
                     onDeleteHistory={handleDeleteHistoryItem}
+                    onClickHistory={(item) => setViewingReport(item)}
                     getSavedTitle={(item) => item.title}
                     getSavedSubtitle={(item) => `${item.questions.length} questões`}
                     getSavedDate={(item) => item.createdAt}
@@ -763,6 +780,17 @@ export function Mixed() {
              </div>
              
              {renderEditQuizModal()}
+
+             <HistoryReportModal
+                isOpen={!!viewingReport}
+                onClose={() => setViewingReport(null)}
+                title={viewingReport?.topic || ''}
+                date={viewingReport?.date || ''}
+                score={viewingReport?.score}
+                total={viewingReport?.total}
+                timeTaken={viewingReport?.timeTaken}
+                questionResults={viewingReport?.questionResults}
+             />
         </div>
     );
 }

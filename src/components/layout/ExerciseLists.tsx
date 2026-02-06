@@ -1,38 +1,16 @@
 import React, { useState } from 'react';
-import { Play, Edit, Trash2, History, FolderOpen, Calendar, MoreVertical, X, Eye } from 'lucide-react';
+import { Play, Edit, Trash2, History, FolderOpen, Calendar, MoreVertical, X, Eye, ChevronRight } from 'lucide-react';
 
-// Função para calcular tempo relativo
-function getRelativeTime(dateString: string | Date): string {
+// Função para formatar data como timestamp
+function formatTimestamp(dateString: string | Date): string {
     const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
-    if (diffInSeconds < 60) {
-        return diffInSeconds === 1 ? 'Criado há 1 segundo' : `Criado há ${diffInSeconds} segundos`;
-    }
-    
-    const diffInMinutes = Math.floor(diffInSeconds / 60);
-    if (diffInMinutes < 60) {
-        return diffInMinutes === 1 ? 'Criado há 1 minuto' : `Criado há ${diffInMinutes} minutos`;
-    }
-    
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) {
-        return diffInHours === 1 ? 'Criado há 1 hora' : `Criado há ${diffInHours} horas`;
-    }
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 30) {
-        return diffInDays === 1 ? 'Criado há 1 dia' : `Criado há ${diffInDays} dias`;
-    }
-    
-    const diffInMonths = Math.floor(diffInDays / 30);
-    if (diffInMonths < 12) {
-        return diffInMonths === 1 ? 'Criado há 1 mês' : `Criado há ${diffInMonths} meses`;
-    }
-    
-    const diffInYears = Math.floor(diffInMonths / 12);
-    return diffInYears === 1 ? 'Criado há 1 ano' : `Criado há ${diffInYears} anos`;
+    return date.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
 interface SharedListProps<T_Saved, T_History> {
@@ -41,7 +19,8 @@ interface SharedListProps<T_Saved, T_History> {
     onPlaySaved: (item: T_Saved) => void;
     onEditSaved: (item: T_Saved) => void;
     onDeleteSaved: (id: string) => void;
-    onDeleteHistory: (id: string) => void;
+    onDeleteHistory?: (id: string) => void;
+    onClickHistory?: (item: T_History) => void;
     
     // Optional standard mappers if T_Saved/T_History don't allow direct property access
     getSavedTitle?: (item: T_Saved) => string;
@@ -66,6 +45,7 @@ export function ExerciseLists<T_Saved extends { id: string }, T_History extends 
     onEditSaved,
     onDeleteSaved,
     onDeleteHistory,
+    onClickHistory,
     getSavedTitle = (item: any) => item.title || item.topic,
     getSavedSubtitle = (item: any) => {
         const count = item.cards?.length || item.questions?.length || 0;
@@ -145,7 +125,7 @@ export function ExerciseLists<T_Saved extends { id: string }, T_History extends 
                                             {getSavedSubtitle(item)}
                                         </span>
                                         <span className="text-gray-400">•</span>
-                                        <span>{getRelativeTime(getSavedDate(item))}</span>
+                                        <span>{formatTimestamp(getSavedDate(item))}</span>
                                     </p>
                                 </div>
                                 <button 
@@ -168,11 +148,18 @@ export function ExerciseLists<T_Saved extends { id: string }, T_History extends 
                 ) : (
                     historyItems.length > 0 ? (
                         historyItems.map((item) => (
-                            <div key={getHistoryId(item)} className="group flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-gray-200 dark:border-slate-700">
-                                <div>
+                            <div 
+                                key={getHistoryId(item)} 
+                                className={`group flex items-center justify-between p-3 sm:p-4 bg-gray-50 dark:bg-slate-900/50 rounded-xl border border-gray-200 dark:border-slate-700 ${onClickHistory ? 'hover:border-purple-300 dark:hover:border-slate-600 cursor-pointer transition-all' : ''}`}
+                                onClick={() => onClickHistory?.(item)}
+                            >
+                                <div className="flex-1">
                                     <h4 className="font-semibold text-gray-800 dark:text-white mb-1">{getHistoryTitle(item)}</h4>
                                     <div className="flex items-center gap-3 text-xs text-gray-500">
-                                        <span>{getRelativeTime(getHistoryDate(item))}</span>
+                                        <span className="flex items-center gap-1">
+                                            <Calendar size={12} />
+                                            {formatTimestamp(getHistoryDate(item))}
+                                        </span>
                                         {getHistorySubtitle(item) && (
                                             <>
                                                 <span className="text-gray-400">•</span>
@@ -183,16 +170,9 @@ export function ExerciseLists<T_Saved extends { id: string }, T_History extends 
                                         )}
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        if(window.confirm('Excluir este item do histórico?')) {
-                                            onDeleteHistory(getHistoryId(item));
-                                        }
-                                    }}
-                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                                {onClickHistory && (
+                                    <ChevronRight size={18} className="text-gray-400 group-hover:text-purple-500 transition" />
+                                )}
                             </div>
                         ))
                     ) : (

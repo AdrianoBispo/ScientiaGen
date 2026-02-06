@@ -7,6 +7,7 @@ import { parseSpreadsheet, getAcceptString, isValidSpreadsheetFile } from '../..
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
 import { ExerciseCompletion } from '../../../components/exercises/ExerciseCompletion';
 import { ExerciseBackButton } from '../../../components/exercises/ExerciseBackButton';
+import { HistoryReportModal } from '../../../components/exercises/HistoryReportModal';
 import { 
   Plus, Brain, Loader2, Folder, MoreVertical, 
   Volume2, X, ChevronLeft, ChevronRight, CheckSquare, 
@@ -53,6 +54,7 @@ export function Flashcards() {
   
   // Edit Set State
   const [editingSet, setEditingSet] = useState<FlashcardSet | null>(null);
+  const [viewingReport, setViewingReport] = useState<HistoryItem | null>(null);
 
   // Save Modal State
   const [saveSetName, setSaveSetName] = useState('');
@@ -346,12 +348,22 @@ export function Flashcards() {
         onEditSaved={(set) => setEditingSet(set)}
         onDeleteSaved={(id) => setSets(sets.filter(s => s.id !== id))}
         onDeleteHistory={(id) => setHistory(history.filter(h => h.id !== id))}
+        onClickHistory={(item) => setViewingReport(item)}
         getSavedTitle={(set) => set.title}
         getSavedSubtitle={(set) => `${set.cards.length} cartões`}
         getSavedDate={(set) => set.createdAt}
         getHistoryTitle={(item) => item.title}
         getHistorySubtitle={(item) => item.score !== undefined && item.total ? `Pontuação: ${item.score}/${item.total}` : ''}
         getHistoryDate={(item) => item.date}
+      />
+
+      <HistoryReportModal
+        isOpen={!!viewingReport}
+        onClose={() => setViewingReport(null)}
+        title={viewingReport?.title || ''}
+        date={viewingReport?.date || ''}
+        score={viewingReport?.score}
+        total={viewingReport?.total}
       />
     </div>
   );

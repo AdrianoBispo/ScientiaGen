@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Quiz } from '../components/Quiz';
 import { generateLearnQuestions, checkAnswer, QuizQuestion, QuestionType } from '../../../services/ai';
 import { ArrowLeft, Save, Play, Trash2, Edit, X, Plus, Brain, Sparkles, Pencil, Timer } from 'lucide-react';
+import { HistoryReportModal, QuestionResult } from '../../../components/exercises/HistoryReportModal';
 import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
@@ -14,6 +15,8 @@ interface LearnHistoryItem {
     topic: string;
     score: number;
     total: number;
+    questionResults?: QuestionResult[];
+    timeTaken?: number;
 }
 
 interface SavedLearnQuiz {
@@ -47,6 +50,8 @@ export function Learn() {
     const [history, setHistory] = usePersistence<LearnHistoryItem[]>('learnHistory', []);
     const [savedQuizzes, setSavedQuizzes] = usePersistence<SavedLearnQuiz[]>('savedLearnQuizzes', []);
     const [editingQuiz, setEditingQuiz] = useState<SavedLearnQuiz | null>(null);
+    const [answeredResults, setAnsweredResults] = useState<QuestionResult[]>([]);
+    const [viewingReport, setViewingReport] = useState<LearnHistoryItem | null>(null);
 
     // Timer state
     const [elapsedTime, setElapsedTime] = useState(0);
@@ -78,7 +83,9 @@ export function Learn() {
             date: new Date().toISOString(),
             topic: topic,
             score: score,
-            total: questions.length
+            total: questions.length,
+            questionResults: [...answeredResults],
+            timeTaken: elapsedTime
         };
         setHistory([newItem, ...history]);
     };
@@ -364,6 +371,7 @@ export function Learn() {
             setScore(0);
             setFeedback(null);
             setElapsedTime(0);
+            setAnsweredResults([]);
             setShowSetup(false);
             return;
         }
@@ -382,6 +390,7 @@ export function Learn() {
                     setScore(0);
                     setFeedback(null);
                     setElapsedTime(0);
+                    setAnsweredResults([]);
                     setShowSetup(false);
                 } else {
                     setError('Não foi possível gerar perguntas sobre este tópico. Tente outro.');
@@ -420,6 +429,13 @@ export function Learn() {
             if (evaluation.isCorrect) {
                 setScore(score + 1);
             }
+
+            setAnsweredResults(prev => [...prev, {
+                question: currentQuestion.question,
+                userAnswer: userAnswer,
+                correctAnswer: currentQuestion.answer,
+                isCorrect: evaluation.isCorrect
+            }]);
         } catch (err) {
             console.error(err);
         } finally {
@@ -438,6 +454,13 @@ export function Learn() {
     };
 
     const handleSkip = () => {
+        const currentQuestion = questions[currentQuestionIndex];
+        setAnsweredResults(prev => [...prev, {
+            question: currentQuestion.question,
+            userAnswer: '',
+            correctAnswer: currentQuestion.answer,
+            isCorrect: false
+        }]);
         setFeedback(null);
         if (currentQuestionIndex < questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -523,6 +546,7 @@ export function Learn() {
                             setCurrentQuestionIndex(0);
                             setScore(0);
                             setFeedback(null);
+                            setAnsweredResults([]);
                         }}
                     />
                     <div className="flex items-center gap-2 font-mono text-lg font-bold text-gray-700 dark:text-gray-300">
@@ -596,6 +620,7 @@ export function Learn() {
                     onEditSaved={handleEditSavedQuiz}
                     onDeleteSaved={handleDeleteSavedQuiz}
                     onDeleteHistory={handleDeleteHistoryItem}
+                    onClickHistory={(item) => setViewingReport(item)}
                     getSavedTitle={(item) => item.title}
                     getSavedSubtitle={(item) => `${item.questions.length} questões`}
                     getSavedDate={(item) => item.createdAt}
@@ -605,6 +630,17 @@ export function Learn() {
              </div>
              
              {renderEditQuizModal()}
+
+             <HistoryReportModal
+                isOpen={!!viewingReport}
+                onClose={() => setViewingReport(null)}
+                title={viewingReport?.topic || ''}
+                date={viewingReport?.date || ''}
+                score={viewingReport?.score}
+                total={viewingReport?.total}
+                timeTaken={viewingReport?.timeTaken}
+                questionResults={viewingReport?.questionResults}
+             />
         </div>
     );
 }

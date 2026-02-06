@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { generateFlashcards, FlashcardData } from '../../../services/ai';
 import { parseSpreadsheet, getAcceptString, isValidSpreadsheetFile } from '../../../utils/spreadsheetParser';
 import { Play, Settings, RefreshCw, Timer, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, Brain, ArrowLeft, FileSpreadsheet, Loader2, Sparkles, Pencil } from 'lucide-react';
+import { HistoryReportModal } from '../../../components/exercises/HistoryReportModal';
 import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
@@ -63,6 +64,7 @@ export function Match() {
     const [history, setHistory] = usePersistence<MatchHistoryItem[]>('matchHistory', []);
     const [savedGames, setSavedGames] = usePersistence<SavedMatchGame[]>('savedMatchGames', []);
     const [editingGame, setEditingGame] = useState<SavedMatchGame | null>(null);
+    const [viewingReport, setViewingReport] = useState<MatchHistoryItem | null>(null);
 
     const timerRef = useRef<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -709,6 +711,7 @@ export function Match() {
                         onEditSaved={handleEditGame}
                         onDeleteSaved={handleDeleteSavedGame}
                         onDeleteHistory={handleDeleteHistoryItem}
+                        onClickHistory={(item) => setViewingReport(item)}
                         getSavedTitle={(item) => item.title}
                         getSavedSubtitle={(item) => `${item.cards.length} pares`}
                         getSavedDate={(item) => item.createdAt}
@@ -719,6 +722,16 @@ export function Match() {
                  </div>
                  
                  {renderEditGameModal()}
+
+                 <HistoryReportModal
+                    isOpen={!!viewingReport}
+                    onClose={() => setViewingReport(null)}
+                    title={viewingReport?.topic || ''}
+                    date={viewingReport?.date || ''}
+                    pairs={viewingReport?.pairs}
+                    timeTaken={viewingReport?.timeTaken}
+                    completed={viewingReport?.completed}
+                 />
             </div>
         );
     }
