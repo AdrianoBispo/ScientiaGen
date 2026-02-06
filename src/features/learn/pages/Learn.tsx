@@ -4,6 +4,8 @@ import { generateLearnQuestions, checkAnswer, QuizQuestion, QuestionType } from 
 import { ArrowLeft, Save, Play, Trash2, Edit, X, Plus, Brain, Sparkles, Pencil } from 'lucide-react';
 import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
+import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
+import { ExerciseCompletion } from '../../../components/exercises/ExerciseCompletion';
 
 interface LearnHistoryItem {
     id: string;
@@ -32,6 +34,10 @@ export function Learn() {
     const [isEvaluating, setIsEvaluating] = useState(false);
     const [error, setError] = useState('');
     const [currentView, setCurrentView] = useState<'setup' | 'ai' | 'manual'>('setup');
+    const [showSetup, setShowSetup] = useState(false);
+    const [questionCount, setQuestionCount] = useState(5);
+    const [pendingAction, setPendingAction] = useState<'ai' | 'saved' | null>(null);
+    const [selectedSavedQuiz, setSelectedSavedQuiz] = useState<SavedLearnQuiz | null>(null);
 
     // Manual creation state
     const [manualTitle, setManualTitle] = useState('');
@@ -72,13 +78,10 @@ export function Learn() {
     };
     
     const handlePlaySavedQuiz = (quiz: SavedLearnQuiz) => {
+        setSelectedSavedQuiz(quiz);
         setTopic(quiz.title);
-        setQuestions(quiz.questions);
-        setQuizStarted(true);
-        setQuizFinished(false);
-        setCurrentQuestionIndex(0);
-        setScore(0);
-        setFeedback(null);
+        setPendingAction('saved');
+        setShowSetup(true);
     };
 
     const handleEditSavedQuiz = (quiz: SavedLearnQuiz) => {
@@ -317,28 +320,62 @@ export function Learn() {
 
 
 
-    const handleStartQuiz = async () => {
-        if (!topic.trim()) return;
-        setIsLoading(true);
+    const handleOpenAiSetup = () => {
+        if (!topic.trim()) {
+            setError('Por favor, insira um tópico.');
+            return;
+        }
         setError('');
-        try {
-            const generatedQuestions = await generateLearnQuestions(topic);
-            if (generatedQuestions && generatedQuestions.length > 0) {
-                setQuestions(generatedQuestions);
-                setQuizStarted(true);
-                setCurrentQuestionIndex(0);
-                setScore(0);
-                setQuizFinished(false);
-            } else {
-                setError('Não foi possível gerar perguntas sobre este tópico. Tente outro.');
+        setPendingAction('ai');
+        setShowSetup(true);
+    };
+
+    const confirmStartQuiz = async () => {
+        if (pendingAction === 'saved' && selectedSavedQuiz) {
+            setQuestions(selectedSavedQuiz.questions);
+            setQuizStarted(true);
+            setQuizFinished(false);
+            setCurrentQuestionIndex(0);
+            setScore(0);
+            setFeedback(null);
+            setShowSetup(false);
+            return;
+        }
+
+        if (pendingAction === 'ai') {
+            setIsLoading(true);
+            setError('');
+            // Close setup immediately implies loading is shown somewhere else?
+            // Or keep setup open with loading state?
+            // ExerciseSetup doesn't have loading prop yet. I should add it or just rely on isLoading state if passed to Start button
+            
+            try {
+                const generatedQuestions = await generateLearnQuestions(topic, questionCount);
+                if (generatedQuestions && generatedQuestions.length > 0) {
+                    setQuestions(generatedQuestions);
+                    setQuizStarted(true);
+                    setQuizFinished(false);
+                    setCurrentQuestionIndex(0);
+                    setScore(0);
+                    setFeedback(null);
+                    setShowSetup(false);
+                } else {
+                    setError('Não foi possível gerar perguntas sobre este tópico. Tente outro.');
+                    setShowSetup(false);
+                }
+            } catch (err) {
+                setError('Erro ao gerar quiz. Tente novamente.');
+                console.error(err);
+                setShowSetup(false);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (err) {
-            setError('Erro ao gerar quiz. Tente novamente.');
-            console.error(err);
-        } finally {
-            setIsLoading(false);
         }
     };
+
+    // Kept for compatibility if any other call uses it, but redirected
+    const handleStartQuiz = handleOpenAiSetup;
+
 
     const handleAnswer = async (userAnswer: string, timeTaken: number) => {
         const currentQuestion = questions[currentQuestionIndex];
@@ -382,39 +419,60 @@ export function Learn() {
         });
     };
 
+    if (showSetup) {
+        const configurations = [];
+        if (pendingAction === 'ai') {
+             configurations.push({
+                 label: 'Número de Questões',
+                 value: questionCount,
+                 type: 'select',
+                 options: [
+                     { label: '3 Questões', value: 3 },
+                     { label: '5 Questões', value: 5 },
+                     { label: '10 Questões', value: 10 },
+                 ],
+                 onChange: (val: any) => setQuestionCount(Number(val))
+             });
+        } else if (pendingAction === 'saved' && selectedSavedQuiz) {
+             configurations.push({
+                 label: 'Questões',
+                 value: `${selectedSavedQuiz.questions.length} questões`,
+                 type: 'readonly'
+             });
+        }
+
+        return (
+            <ExerciseSetup
+                title={pendingAction === 'ai' ? `Gerar Quiz: ${topic}` : `Quiz: ${topic}`}
+                description={pendingAction === 'ai' ? "Configure seu exercício gerado por IA" : "Pronto para começar?"}
+                configurations={configurations as any}
+                onStart={confirmStartQuiz}
+                onBack={() => setShowSetup(false)}
+                startLabel={isLoading ? "Gerando..." : "Começar"}
+            />
+        );
+    }
+
     if (quizFinished) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[40vh] sm:min-h-[60vh] gap-4 sm:gap-6 animate-in zoom-in duration-300 px-4">
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">Quiz Finalizado!</h2>
-                <div className="text-xl text-gray-600 dark:text-gray-300">
-                    Sua pontuação final: <span className="font-bold text-blue-600 dark:text-blue-400">{score}</span> de {questions.length}
-                </div>
-             {renderEditQuizModal()}
-                <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mt-4">
-                    <button 
-                        onClick={handleSaveHistory}
-                        className="px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition flex items-center gap-2 text-sm sm:text-base"
-                    >
-                        <Save size={20} /> Salvar Resultado
-                    </button>
-                    <button 
-                        onClick={handleSaveQuiz}
-                        className="px-6 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition flex items-center gap-2"
-                    >
-                        <Save size={20} /> Salvar Exercício
-                    </button>
-                    <button 
-                        onClick={() => {
-                            setQuizStarted(false);
-                            setTopic('');
-                            setQuestions([]);
-                        }}
-                        className="px-6 py-3 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition"
-                    >
-                        Voltar ao Início
-                    </button>
-                </div>
-            </div>
+            <ExerciseCompletion
+                score={score}
+                total={questions.length}
+                onPlayAgain={() => {
+                    setQuizStarted(false);
+                    setQuizFinished(false);
+                    setShowSetup(true);
+                }}
+                onSave={pendingAction === 'ai' ? handleSaveQuiz : undefined}
+                onExit={() => {
+                    setQuizStarted(false);
+                    setQuizFinished(false);
+                    setTopic('');
+                    setQuestions([]);
+                    setCurrentView('setup');
+                }}
+                isSaved={savedQuizzes.some(sq => sq.title === topic && sq.questions.length === questions.length)}
+            />
         );
     }
 

@@ -4,6 +4,8 @@ import { parseSpreadsheet, getAcceptString, isValidSpreadsheetFile } from '../..
 import { Play, Settings, RefreshCw, Timer, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, Brain, ArrowLeft, FileSpreadsheet, Loader2, Sparkles, Pencil } from 'lucide-react';
 import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
+import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
+import { ExerciseCompletion } from '../../../components/exercises/ExerciseCompletion';
 
 type GameState = 'setup' | 'loading' | 'playing' | 'finished';
 
@@ -37,6 +39,10 @@ export function Match() {
     const [pairCount, setPairCount] = useState(6);
     const [timeLimit, setTimeLimit] = useState(120); // seconds
     const [currentView, setCurrentView] = useState<'setup' | 'ai' | 'manual'>('setup');
+    const [showSetup, setShowSetup] = useState(false);
+    const [pendingAction, setPendingAction] = useState<'ai' | 'saved' | null>(null);
+    const [selectedSavedGame, setSelectedSavedGame] = useState<SavedMatchGame | null>(null);
+    const [resultSaved, setResultSaved] = useState(false);
     
     // Manual creation state
     const [manualTitle, setManualTitle] = useState('');
@@ -134,8 +140,10 @@ export function Match() {
     };
 
     const handlePlaySavedGame = (game: SavedMatchGame) => {
+        setSelectedSavedGame(game);
         setTopic(game.title);
-        prepareGame(game.cards);
+        setPendingAction('saved');
+        setShowSetup(true);
     };
 
     const handleEditGame = (game: SavedMatchGame) => {
@@ -220,7 +228,11 @@ export function Match() {
                     {errorMsg && <p className="text-red-500 text-sm mb-4">{errorMsg}</p>}
 
                     <button 
-                        onClick={startGame}
+                        onClick={() => {
+                            if (!topic) return;
+                            setPendingAction('ai');
+                            setShowSetup(true);
+                        }}
                         disabled={!topic || gameState === 'loading'}
                         className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
@@ -516,7 +528,81 @@ export function Match() {
         );
     };
 
+    // Confirm start from setup screen
+    const confirmStartGame = async () => {
+        if (pendingAction === 'saved' && selectedSavedGame) {
+            prepareGame(selectedSavedGame.cards);
+            setShowSetup(false);
+            setResultSaved(false);
+            return;
+        }
+        if (pendingAction === 'ai') {
+            setShowSetup(false);
+            await startGame();
+            setResultSaved(false);
+        }
+    };
+
     // Render Setup Screen
+    if (showSetup) {
+        const configurations: any[] = [];
+        if (pendingAction === 'ai') {
+            configurations.push({
+                label: 'Pares',
+                value: pairCount,
+                type: 'select',
+                options: [
+                    { label: '3 Pares', value: 3 },
+                    { label: '6 Pares', value: 6 },
+                    { label: '9 Pares', value: 9 },
+                    { label: '12 Pares', value: 12 },
+                ],
+                onChange: (val: any) => setPairCount(Number(val))
+            });
+            configurations.push({
+                label: 'Tempo Limite',
+                value: timeLimit,
+                type: 'select',
+                options: [
+                    { label: '60 segundos', value: 60 },
+                    { label: '120 segundos', value: 120 },
+                    { label: '180 segundos', value: 180 },
+                    { label: '300 segundos', value: 300 },
+                ],
+                onChange: (val: any) => setTimeLimit(Number(val))
+            });
+        } else if (pendingAction === 'saved' && selectedSavedGame) {
+            configurations.push({
+                label: 'Pares',
+                value: `${selectedSavedGame.cards.length} pares`,
+                type: 'readonly'
+            });
+            configurations.push({
+                label: 'Tempo Limite',
+                value: timeLimit,
+                type: 'select',
+                options: [
+                    { label: '60 segundos', value: 60 },
+                    { label: '120 segundos', value: 120 },
+                    { label: '180 segundos', value: 180 },
+                    { label: '300 segundos', value: 300 },
+                ],
+                onChange: (val: any) => setTimeLimit(Number(val))
+            });
+        }
+
+        return (
+            <ExerciseSetup
+                title={`Jogo: ${topic}`}
+                description="Configure e comece o jogo da memória"
+                configurations={configurations}
+                onStart={confirmStartGame}
+                onBack={() => setShowSetup(false)}
+                startLabel={gameState === 'loading' ? "Gerando..." : "Começar"}
+            />
+        );
+    }
+
     if (gameState === 'setup') {
         if (currentView === 'ai') {
             return renderAIView();
@@ -622,47 +708,33 @@ export function Match() {
 
     if (gameState === 'finished') {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in zoom-in duration-300">
-                <div className="mb-6 flex flex-col items-center">
-                   {matches === gameItems.terms.length ? (
-                       <CheckCircle size={80} className="text-green-500 mb-4" />
-                   ) : (
-                       <XCircle size={80} className="text-red-500 mb-4" />
-                   )}
-                   <h2 className="text-3xl font-bold text-gray-800 dark:text-white">
-                       {matches === gameItems.terms.length ? 'Você Venceu!' : 'Fim de Jogo'}
-                   </h2>
-                   <p className="text-gray-600 dark:text-gray-400 mt-2">
-                       Você encontrou {matches} pares em {timeLimit - timeLeft} segundos.
-                   </p>
-                </div>
-
-                <div className="space-y-4 w-full max-w-xs">
-                    <button 
-                        onClick={() => setGameState('setup')}
-                        className="w-full py-3 bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-slate-600 transition"
-                    >
-                        Voltar ao Menu
-                    </button>
-                    <button 
-                        onClick={() => {
-                             // Reconstruct original cards to save
-                            const originalCards: FlashcardData[] = [];
-                            gameItems.terms.forEach(t => {
-                                const def = gameItems.definitions.find(d => d.originalPairId === t.originalPairId);
-                                if (def) {
-                                    originalCards.push({ term: t.text, definition: def.text });
-                                }
-                            });
-                            handleSaveGame(originalCards);
-                        }}
-                        className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition flex items-center justify-center gap-2"
-                    >
-                        <Save size={18} />
-                        Salvar Jogo
-                    </button>
-                </div>
-            </div>
+            <ExerciseCompletion
+                score={matches}
+                total={gameItems.terms.length}
+                onPlayAgain={() => {
+                    setGameState('setup');
+                    setShowSetup(true);
+                    setResultSaved(false);
+                }}
+                onSave={pendingAction === 'ai' ? () => {
+                    const originalCards: FlashcardData[] = [];
+                    gameItems.terms.forEach(t => {
+                        const def = gameItems.definitions.find(d => d.originalPairId === t.originalPairId);
+                        if (def) {
+                            originalCards.push({ term: t.text, definition: def.text });
+                        }
+                    });
+                    handleSaveGame(originalCards);
+                    setResultSaved(true);
+                } : undefined}
+                onExit={() => {
+                    setGameState('setup');
+                    setTopic('');
+                    setCurrentView('setup');
+                    setResultSaved(false);
+                }}
+                isSaved={resultSaved}
+            />
         );
     }
 

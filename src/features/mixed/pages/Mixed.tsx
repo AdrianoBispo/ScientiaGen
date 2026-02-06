@@ -3,6 +3,8 @@ import { generateMixedQuiz, MistoQuestion, QuestionType } from '../../../service
 import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, Brain, ArrowLeft, Sparkles, Pencil } from 'lucide-react';
 import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
+import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
+import { ExerciseCompletion } from '../../../components/exercises/ExerciseCompletion';
 
 interface MixedHistoryItem {
     id: string;
@@ -29,6 +31,11 @@ export function Mixed() {
     const [feedback, setFeedback] = useState<{ isCorrect: boolean, feedback: string } | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [currentView, setCurrentView] = useState<'setup' | 'ai' | 'manual'>('setup');
+    const [showSetup, setShowSetup] = useState(false);
+    const [pendingAction, setPendingAction] = useState<'ai' | 'saved' | null>(null);
+    const [selectedSavedQuiz, setSelectedSavedQuiz] = useState<SavedMixedQuiz | null>(null);
+    const [questionCount, setQuestionCount] = useState(5);
+    const [resultSaved, setResultSaved] = useState(false);
     
     // Manual creation state
     const [manualTitle, setManualTitle] = useState('');
@@ -117,13 +124,10 @@ export function Mixed() {
     };
 
     const handlePlaySavedQuiz = (quiz: SavedMixedQuiz) => {
-        setQuestions(quiz.questions);
+        setSelectedSavedQuiz(quiz);
         setTopic(quiz.title);
-        setCurrentStep('quiz');
-        setCurrentIndex(0);
-        setScore(0);
-        setFeedback(null);
-        setUserAnswer('');
+        setPendingAction('saved');
+        setShowSetup(true);
     };
 
     const handleEditSavedQuiz = (quiz: SavedMixedQuiz) => {
@@ -188,7 +192,11 @@ export function Mixed() {
                     />
 
                     <button 
-                        onClick={startQuiz}
+                        onClick={() => {
+                            if (!topic.trim()) return;
+                            setPendingAction('ai');
+                            setShowSetup(true);
+                        }}
                         disabled={!topic || isLoading}
                         className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
@@ -500,32 +508,83 @@ export function Mixed() {
         );
     };
 
+    // Confirm start from setup screen
+    const confirmStartQuiz = async () => {
+        if (pendingAction === 'saved' && selectedSavedQuiz) {
+            setQuestions(selectedSavedQuiz.questions);
+            setCurrentStep('quiz');
+            setCurrentIndex(0);
+            setScore(0);
+            setFeedback(null);
+            setUserAnswer('');
+            setShowSetup(false);
+            setResultSaved(false);
+            return;
+        }
+        if (pendingAction === 'ai') {
+            setShowSetup(false);
+            setResultSaved(false);
+            await startQuiz();
+        }
+    };
+
+    if (showSetup) {
+        const configurations: any[] = [];
+        if (pendingAction === 'ai') {
+            configurations.push({
+                label: 'Número de Questões',
+                value: questionCount,
+                type: 'select',
+                options: [
+                    { label: '3 Questões', value: 3 },
+                    { label: '5 Questões', value: 5 },
+                    { label: '10 Questões', value: 10 },
+                ],
+                onChange: (val: any) => setQuestionCount(Number(val))
+            });
+        } else if (pendingAction === 'saved' && selectedSavedQuiz) {
+            configurations.push({
+                label: 'Questões',
+                value: `${selectedSavedQuiz.questions.length} questões`,
+                type: 'readonly'
+            });
+        }
+
+        return (
+            <ExerciseSetup
+                title={pendingAction === 'ai' ? `Quiz Misto: ${topic}` : `Quiz: ${topic}`}
+                description={pendingAction === 'ai' ? "Configure seu quiz misto gerado por IA" : "Pronto para começar?"}
+                configurations={configurations}
+                onStart={confirmStartQuiz}
+                onBack={() => setShowSetup(false)}
+                startLabel={isLoading ? "Gerando..." : "Começar"}
+            />
+        );
+    }
+
     if (currentStep === 'results') {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in zoom-in duration-300">
-                <div className="mb-6 flex flex-col items-center">
-                    <CheckCircle size={80} className="text-green-500 mb-4" />
-                    <h2 className="text-3xl font-bold text-gray-800 dark:text-white">Quiz Finalizado!</h2>
-                    <p className="text-gray-600 dark:text-gray-400 mt-2">
-                        Você acertou {score} de {questions.length} questões.
-                    </p>
-                </div>
-
-                <div className="flex gap-4 w-full max-w-md">
-                     <button 
-                        onClick={() => setCurrentStep('setup')}
-                        className="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-slate-600 transition"
-                    >
-                        Voltar
-                    </button>
-                    <button 
-                        onClick={handleSaveQuiz}
-                        className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition flex items-center justify-center gap-2"
-                    >
-                        <Save size={18} /> Salvar Quiz
-                    </button>
-                </div>
-            </div>
+            <ExerciseCompletion
+                score={score}
+                total={questions.length}
+                onPlayAgain={() => {
+                    setCurrentStep('setup');
+                    setShowSetup(true);
+                    setResultSaved(false);
+                }}
+                onSave={pendingAction === 'ai' ? () => {
+                    handleSaveQuiz();
+                    setResultSaved(true);
+                } : undefined}
+                onExit={() => {
+                    setCurrentStep('setup');
+                    setTopic('');
+                    setQuestions([]);
+                    setCurrentView('setup');
+                    setResultSaved(false);
+                }}
+                isSaved={resultSaved}
+            />
         );
     }
 

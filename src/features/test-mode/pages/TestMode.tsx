@@ -3,6 +3,8 @@ import { generateTestQuestions, TestQuestion } from '../../../services/ai';
 import { Play, Settings, RefreshCw, CheckCircle, XCircle, History, Trash2, Save, Edit, X, Plus, AlertCircle, Brain, ArrowLeft, Sparkles, Pencil } from 'lucide-react';
 import { usePersistence } from '../../../hooks/usePersistence';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
+import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
+import { ExerciseCompletion } from '../../../components/exercises/ExerciseCompletion';
 
 interface TestHistoryItem {
     id: string;
@@ -24,6 +26,11 @@ export function TestMode() {
     const [topic, setTopic] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [currentView, setCurrentView] = useState<'setup' | 'ai' | 'manual'>('setup');
+    const [showSetup, setShowSetup] = useState(false);
+    const [pendingAction, setPendingAction] = useState<'ai' | 'saved' | null>(null);
+    const [selectedSavedQuiz, setSelectedSavedQuiz] = useState<SavedTestQuiz | null>(null);
+    const [questionCount, setQuestionCount] = useState(5);
+    const [resultSaved, setResultSaved] = useState(false);
     
     // Game State
     const [gameStatus, setGameStatus] = useState<'setup' | 'playing' | 'finished'>('setup');
@@ -128,12 +135,10 @@ export function TestMode() {
     };
 
     const handlePlaySavedQuiz = (quiz: SavedTestQuiz) => {
-        setQuestions(quiz.questions);
+        setSelectedSavedQuiz(quiz);
         setTopic(quiz.title);
-        setGameStatus('playing');
-        setCurrentQuestionIndex(0);
-        setScore(0);
-        resetQuestionState();
+        setPendingAction('saved');
+        setShowSetup(true);
     };
 
     const handleEditSavedQuiz = (quiz: SavedTestQuiz) => {
@@ -205,7 +210,11 @@ export function TestMode() {
                     />
 
                     <button 
-                        onClick={handleStartGame}
+                        onClick={() => {
+                            if (!topic.trim()) return;
+                            setPendingAction('ai');
+                            setShowSetup(true);
+                        }}
                         disabled={!topic || isLoading}
                         className="w-full py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
@@ -483,32 +492,82 @@ export function TestMode() {
         );
     };
 
+    // Confirm start from setup screen
+    const confirmStartGame = async () => {
+        if (pendingAction === 'saved' && selectedSavedQuiz) {
+            setQuestions(selectedSavedQuiz.questions);
+            setGameStatus('playing');
+            setCurrentQuestionIndex(0);
+            setScore(0);
+            resetQuestionState();
+            setShowSetup(false);
+            setResultSaved(false);
+            return;
+        }
+        if (pendingAction === 'ai') {
+            setShowSetup(false);
+            setResultSaved(false);
+            await handleStartGame();
+        }
+    };
+
+    if (showSetup) {
+        const configurations: any[] = [];
+        if (pendingAction === 'ai') {
+            configurations.push({
+                label: 'Número de Questões',
+                value: questionCount,
+                type: 'select',
+                options: [
+                    { label: '3 Questões', value: 3 },
+                    { label: '5 Questões', value: 5 },
+                    { label: '10 Questões', value: 10 },
+                ],
+                onChange: (val: any) => setQuestionCount(Number(val))
+            });
+        } else if (pendingAction === 'saved' && selectedSavedQuiz) {
+            configurations.push({
+                label: 'Questões',
+                value: `${selectedSavedQuiz.questions.length} questões`,
+                type: 'readonly'
+            });
+        }
+
+        return (
+            <ExerciseSetup
+                title={pendingAction === 'ai' ? `Teste: ${topic}` : `Teste: ${topic}`}
+                description={pendingAction === 'ai' ? "Configure seu teste gerado por IA" : "Pronto para começar?"}
+                configurations={configurations}
+                onStart={confirmStartGame}
+                onBack={() => setShowSetup(false)}
+                startLabel={isLoading ? "Gerando..." : "Começar"}
+            />
+        );
+    }
+
     if (gameStatus === 'finished') {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in zoom-in duration-300">
-                <div className="mb-6 flex flex-col items-center">
-                    <CheckCircle size={80} className="text-green-500 mb-4" />
-                    <h2 className="text-3xl font-bold text-gray-800 dark:text-white">Teste Finalizado!</h2>
-                    <p className="text-gray-600 dark:text-gray-400 mt-2">
-                        Você acertou {score} de {questions.length} questões.
-                    </p>
-                </div>
-
-                <div className="flex gap-4 w-full max-w-md">
-                     <button 
-                        onClick={() => setGameStatus('setup')}
-                        className="flex-1 py-3 bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-white rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-slate-600 transition"
-                    >
-                        Voltar
-                    </button>
-                    <button 
-                        onClick={handleSaveQuiz}
-                        className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white rounded-xl font-medium hover:bg-blue-700 dark:hover:bg-blue-600 transition flex items-center justify-center gap-2"
-                    >
-                        <Save size={18} /> Salvar Teste
-                    </button>
-                </div>
-            </div>
+            <ExerciseCompletion
+                score={score}
+                total={questions.length}
+                onPlayAgain={() => {
+                    setGameStatus('setup');
+                    setShowSetup(true);
+                    setResultSaved(false);
+                }}
+                onSave={pendingAction === 'ai' ? () => {
+                    handleSaveQuiz();
+                    setResultSaved(true);
+                } : undefined}
+                onExit={() => {
+                    setGameStatus('setup');
+                    setTopic('');
+                    setQuestions([]);
+                    setCurrentView('setup');
+                    setResultSaved(false);
+                }}
+                isSaved={resultSaved}
+            />
         );
     }
 

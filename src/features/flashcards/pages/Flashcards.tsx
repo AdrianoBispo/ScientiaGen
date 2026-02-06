@@ -4,6 +4,8 @@ import { Card } from '../components/Card';
 import { ExerciseLists } from '../../../components/layout/ExerciseLists';
 import { generateFlashcards, FlashcardData } from '../../../services/ai';
 import { parseSpreadsheet, getAcceptString, isValidSpreadsheetFile } from '../../../utils/spreadsheetParser';
+import { ExerciseSetup } from '../../../components/exercises/ExerciseSetup';
+import { ExerciseCompletion } from '../../../components/exercises/ExerciseCompletion';
 import { 
   Plus, Brain, Loader2, Folder, MoreVertical, 
   Volume2, X, ChevronLeft, ChevronRight, CheckSquare, 
@@ -33,6 +35,8 @@ export function Flashcards() {
   const [history, setHistory] = usePersistence<HistoryItem[]>('flashcardHistory', []);
   const [currentView, setCurrentView] = useState<'sets' | 'generator' | 'study' | 'manual'>('sets');
   const [activeSetId, setActiveSetId] = useState<string | null>(null);
+  const [showStudySetup, setShowStudySetup] = useState(false);
+  const [pendingStudySetId, setPendingStudySetId] = useState<string | null>(null);
 
   // Generator State
   const [genTopic, setGenTopic] = useState('');
@@ -306,10 +310,8 @@ export function Flashcards() {
         savedTabLabel="Lista de Cartões"
         historyTabLabel="Histórico"
         onPlaySaved={(set) => { 
-            setActiveSetId(set.id); 
-            setCurrentView('study'); 
-            setViewCardIndex(0); 
-            setStudyScore(0);
+            setPendingStudySetId(set.id);
+            setShowStudySetup(true);
         }}
         onEditSaved={(set) => setEditingSet(set)}
         onDeleteSaved={(id) => setSets(sets.filter(s => s.id !== id))}
@@ -629,17 +631,11 @@ export function Flashcards() {
                         <h4 className="font-bold text-gray-800 dark:text-white">Ações dos Cartões</h4>
                         <button onClick={() => setShowSetActionsModal(null)} className="text-gray-400 hover:text-gray-600">
                             <X size={20} />
-                                setActiveSetId(set.id); 
-                                setCurrentView('study'); 
-                                setShowSetActionsModal(null); 
-                                setViewCardIndex(0); 
-                                setStudyScore(0);
-                           
                         </button>
                     </div>
                     <div className="p-2">
                         <button className="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-3 text-gray-700 dark:text-gray-200 transition"
-                            onClick={() => { setActiveSetId(set.id); setCurrentView('study'); setShowSetActionsModal(null); setViewCardIndex(0); }}>
+                            onClick={() => { setPendingStudySetId(set.id); setShowStudySetup(true); setShowSetActionsModal(null); }}>
                             <Eye size={20} className="text-blue-500" /> 
                             <span className="font-medium">Exibir</span>
                         </button>
@@ -667,6 +663,33 @@ export function Flashcards() {
 
   // --- Main Render ---
 
+  if (showStudySetup && pendingStudySetId) {
+      const pendingSet = sets.find(s => s.id === pendingStudySetId);
+      if (pendingSet) {
+          return (
+              <ExerciseSetup
+                  title={`Estudar: ${pendingSet.title}`}
+                  description="Revise seus flashcards"
+                  configurations={[{
+                      label: 'Cartões',
+                      value: `${pendingSet.cards.length} cartões`,
+                      type: 'readonly' as const
+                  }]}
+                  onStart={() => {
+                      setActiveSetId(pendingStudySetId);
+                      setCurrentView('study');
+                      setViewCardIndex(0);
+                      setStudyScore(0);
+                      setIsStudyCardFlipped(false);
+                      setShowStudySetup(false);
+                  }}
+                  onBack={() => { setShowStudySetup(false); setPendingStudySetId(null); }}
+                  startLabel="Começar Estudo"
+              />
+          );
+      }
+  }
+
   if (currentView === 'generator') {
       return (
           <>
@@ -692,25 +715,23 @@ export function Flashcards() {
                    
                    <div className="flex-1 flex flex-col items-center justify-center w-full pb-20 overflow-hidden">
                         {viewCardIndex >= activeSet.cards.length ? (
-                            <div className="flex flex-col items-center animate-fade-in text-center p-8 bg-white dark:bg-slate-800 rounded-3xl shadow-lg max-w-lg border border-gray-100 dark:border-slate-700">
-                                <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-fullsetStudyScore(0);  flex items-center justify-center mb-6">
-                                    <CheckSquare size={40} className="text-green-600 dark:text-green-400" />
-                                </div>
-                                <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">Parabéns!</h2>
-                                <p className="text-gray-500 dark:text-gray-400 mb-8 text-lg">Você completou todos os cartões deste conjunto.</p>
-                                <button 
-                                    onClick={() => { setViewCardIndex(0); setIsStudyCardFlipped(false); }}
-                                    className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition mb-3"
-                                >
-                                    Reiniciar Estudo
-                                </button>
-                                <button 
-                                    onClick={() => { setCurrentView('sets'); setActiveSetId(null); }}
-                                    className="w-full py-3 px-6 border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-slate-700 transition"
-                                >
-                                    Voltar para Lista
-                                </button>
-                            </div>
+                            <ExerciseCompletion
+                                score={studyScore}
+                                total={activeSet.cards.length}
+                                onPlayAgain={() => {
+                                    setViewCardIndex(0);
+                                    setIsStudyCardFlipped(false);
+                                    setStudyScore(0);
+                                    setShowStudySetup(true);
+                                    setPendingStudySetId(activeSetId);
+                                    setCurrentView('sets');
+                                }}
+                                onExit={() => {
+                                    setCurrentView('sets');
+                                    setActiveSetId(null);
+                                    setStudyScore(0);
+                                }}
+                            />
                         ) : activeSet.cards.length > 0 ? (
                            <>
                             <div 
